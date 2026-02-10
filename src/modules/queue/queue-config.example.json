@@ -1,0 +1,51 @@
+{
+  "industry": "RESTAURANT",
+  "flowName": "Standard Table Service",
+  "initialState": "WAIT_TABLE",
+  "states": {
+    "WAIT_TABLE": {
+      "code": "WAIT_TABLE",
+      "label": "รอโต๊ะ",
+      "nextAllowed": ["ORDERING", "CANCEL"],
+      "color": "#FFC107"
+    },
+    "ORDERING": {
+      "code": "ORDERING",
+      "label": "กำลังสั่งอาหาร",
+      "nextAllowed": ["WAIT_FOOD"],
+      "color": "#2196F3"
+    },
+    "WAIT_FOOD": {
+      "code": "WAIT_FOOD",
+      "label": "รออาหาร",
+      "nextAllowed": ["EATING"],
+      "actions": ["NOTIFY_KDS_NEW_ORDER"],
+      "color": "#FF9800"
+    },
+    "EATING": {
+      "code": "EATING",
+      "label": "กำลังทาน",
+      "nextAllowed": ["PAYMENT"],
+      "color": "#4CAF50"
+    },
+    "PAYMENT": {
+      "code": "PAYMENT",
+      "label": "รอชำระเงิน",
+      "nextAllowed": ["COMPLETED"],
+      "actions": ["PRINT_BILL"],
+      "color": "#9C27B0"
+    },
+    "COMPLETED": {
+      "code": "COMPLETED",
+      "label": "เสร็จสิ้น",
+      "nextAllowed": [],
+      "color": "#9E9E9E"
+    },
+    "CANCEL": {
+      "code": "CANCEL",
+      "label": "ยกเลิก",
+      "nextAllowed": [],
+      "color": "#F44336"
+    }
+  }
+}

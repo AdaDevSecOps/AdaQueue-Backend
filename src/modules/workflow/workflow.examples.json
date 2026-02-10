@@ -1,0 +1,164 @@
+{
+  "RESTAURANT": {
+    "flowCode": "FLOW_REST_001",
+    "industry": "RESTAURANT",
+    "version": "1.0",
+    "initialState": "WAIT_TABLE",
+    "states": {
+      "WAIT_TABLE": {
+        "code": "WAIT_TABLE",
+        "label": "Waiting for Table",
+        "type": "INITIAL",
+        "transitions": [
+          { "to": "ORDERING", "label": "Seated", "requiredRole": ["HOST"] },
+          { "to": "CANCEL", "label": "Customer Left" }
+        ]
+      },
+      "ORDERING": {
+        "code": "ORDERING",
+        "label": "Ordering",
+        "type": "NORMAL",
+        "transitions": [
+          { "to": "WAIT_FOOD", "label": "Order Sent" }
+        ]
+      },
+      "WAIT_FOOD": {
+        "code": "WAIT_FOOD",
+        "label": "Waiting for Food",
+        "type": "NORMAL",
+        "onEntry": [{ "type": "EVENT_EMIT", "target": "KDS_NEW_ORDER" }],
+        "transitions": [
+          { "to": "EATING", "label": "Food Served" }
+        ]
+      },
+      "EATING": {
+        "code": "EATING",
+        "label": "Eating",
+        "type": "NORMAL",
+        "transitions": [
+          { "to": "PAYMENT", "label": "Request Bill" }
+        ]
+      },
+      "PAYMENT": {
+        "code": "PAYMENT",
+        "label": "Payment",
+        "type": "NORMAL",
+        "transitions": [
+          { "to": "COMPLETED", "label": "Paid", "actions": [{ "type": "API_CALL", "target": "POS_CLOSE_BILL" }] }
+        ]
+      },
+      "COMPLETED": { "code": "COMPLETED", "label": "Completed", "type": "FINAL", "transitions": [] },
+      "CANCEL": { "code": "CANCEL", "label": "Cancelled", "type": "FINAL", "transitions": [] }
+    }
+  },
+  "CLINIC": {
+    "flowCode": "FLOW_CLINIC_001",
+    "industry": "CLINIC",
+    "version": "1.0",
+    "initialState": "REGISTRATION",
+    "states": {
+      "REGISTRATION": {
+        "code": "REGISTRATION",
+        "label": "Registration",
+        "type": "INITIAL",
+        "transitions": [
+          { "to": "TRIAGE", "label": "To Screening" }
+        ]
+      },
+      "TRIAGE": {
+        "code": "TRIAGE",
+        "label": "Vital Signs & Screening",
+        "type": "NORMAL",
+        "transitions": [
+          { "to": "WAIT_DOCTOR", "label": "To Doctor", "requiredRole": ["NURSE"] }
+        ]
+      },
+      "WAIT_DOCTOR": {
+        "code": "WAIT_DOCTOR",
+        "label": "Waiting for Doctor",
+        "type": "NORMAL",
+        "transitions": [
+          { "to": "IN_ROOM", "label": "Call Patient", "actions": [{ "type": "NOTIFICATION", "target": "DISPLAY_BOARD" }] }
+        ]
+      },
+      "IN_ROOM": {
+        "code": "IN_ROOM",
+        "label": "In Consultation",
+        "type": "NORMAL",
+        "transitions": [
+          { "to": "PHARMACY", "label": "Prescribe Meds" },
+          { "to": "LAB", "label": "Order Lab Test" }
+        ]
+      },
+      "LAB": {
+        "code": "LAB",
+        "label": "Laboratory",
+        "type": "NORMAL",
+        "transitions": [
+          { "to": "WAIT_DOCTOR", "label": "Results Ready" }
+        ]
+      },
+      "PHARMACY": {
+        "code": "PHARMACY",
+        "label": "Pharmacy",
+        "type": "NORMAL",
+        "transitions": [
+          { "to": "PAYMENT", "label": "Meds Dispensed" }
+        ]
+      },
+      "PAYMENT": {
+        "code": "PAYMENT",
+        "label": "Payment",
+        "type": "NORMAL",
+        "transitions": [
+          { "to": "COMPLETED", "label": "Paid" }
+        ]
+      },
+      "COMPLETED": { "code": "COMPLETED", "label": "Completed", "type": "FINAL", "transitions": [] }
+    }
+  },
+  "BANK": {
+    "flowCode": "FLOW_BANK_001",
+    "industry": "BANK",
+    "version": "1.0",
+    "initialState": "TICKET_ISSUED",
+    "states": {
+      "TICKET_ISSUED": {
+        "code": "TICKET_ISSUED",
+        "label": "Ticket Issued",
+        "type": "INITIAL",
+        "transitions": [
+          { "to": "WAITING", "label": "Customer Arrived" }
+        ]
+      },
+      "WAITING": {
+        "code": "WAITING",
+        "label": "Waiting in Lobby",
+        "type": "NORMAL",
+        "transitions": [
+          { "to": "SERVING", "label": "Call to Counter", "actions": [{ "type": "NOTIFICATION", "target": "VOICE_ANNOUNCE" }] },
+          { "to": "ABSENT", "label": "No Show" }
+        ]
+      },
+      "SERVING": {
+        "code": "SERVING",
+        "label": "At Counter",
+        "type": "NORMAL",
+        "transitions": [
+          { "to": "COMPLETED", "label": "Finish Transaction" },
+          { "to": "REDIRECT", "label": "Redirect Dept" }
+        ]
+      },
+      "REDIRECT": {
+        "code": "REDIRECT",
+        "label": "Redirected",
+        "type": "NORMAL",
+        "transitions": [
+          { "to": "WAITING", "label": "Re-queue" }
+        ]
+      },
+      "ABSENT": { "code": "ABSENT", "label": "Absent", "type": "FINAL", "transitions": [] },
+      "COMPLETED": { "code": "COMPLETED", "label": "Completed", "type": "FINAL", "transitions": [] }
+    }
+  }
+}
