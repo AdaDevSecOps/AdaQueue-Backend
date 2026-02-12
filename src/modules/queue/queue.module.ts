@@ -8,6 +8,7 @@ import { QueueEntity } from './entities/queue.entity';
 import { TypeOrmQueueRepository } from './repositories/queue.repository.typeorm';
 import { WorkflowModule } from '../workflow/workflow.module';
 import { SequenceModule } from '../sequence/sequence.module';
+import { EventService } from '../events/events.service';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { SequenceModule } from '../sequence/sequence.module';
       provide: 'IQueueRepository',
       useClass: TypeOrmQueueRepository,
     },
+    EventService,
   ],
   exports: [QueueService],
 })

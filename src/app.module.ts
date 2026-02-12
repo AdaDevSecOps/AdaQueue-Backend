@@ -12,6 +12,7 @@ import { KdsController } from './modules/integration/kds/kds.controller';
 import { PosController } from './modules/integration/pos/pos.controller';
 import { NotificationService } from './modules/notification/notification.service';
 import { SequenceModule } from './modules/sequence/sequence.module';
+import { EventsGateway } from './modules/events/events.gateway';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { SequenceModule } from './modules/sequence/sequence.module';
     AuditService,
     EventService,
     NotificationService,
+    EventsGateway,
   ],
 })
 export class AppModule {}

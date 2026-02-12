@@ -5,6 +5,8 @@ import { CreateQueueDto } from './dto/create-queue.dto';
 import { QueueEntity } from './entities/queue.entity';
 import { IQueueRepository } from './repositories/queue.repository.interface';
 import { SequenceService } from '../sequence/sequence.service';
+import { EventService } from '../events/events.service';
+import { EventType } from '../events/events.types';
 
 @Injectable()
 export class QueueService {
@@ -12,7 +14,8 @@ export class QueueService {
     private readonly workflowEngine: WorkflowEngine,
     private readonly workflowConfig: WorkflowConfigService,
     @Inject('IQueueRepository') private readonly queueRepository: IQueueRepository,
-    private readonly sequenceService: SequenceService
+    private readonly sequenceService: SequenceService,
+    private readonly eventService: EventService
   ) {}
 
   // Create new Queue (Core Engine Logic)
@@ -73,6 +76,9 @@ export class QueueService {
 
     try {
       const saved = await this.queueRepository.create(newQueue);
+      try {
+        await this.eventService.publish(EventType.QUEUE_CREATED, saved, saved.docNo);
+      } catch {}
       return saved;
     } catch (err: any) {
       throw new BadRequestException(err?.message || 'Failed to create queue');
@@ -109,6 +115,10 @@ export class QueueService {
     // 4. Log History
     // MOCK: await this.logRepository.save({ docNo, oldState: queue.status, newState: targetState, date: new Date() });
     
+    try {
+      await this.eventService.publish(EventType.QUEUE_STATE_CHANGED, { docNo, newState: targetState, industry, data: queue }, docNo);
+    } catch {}
+
     return { docNo, oldState: queue.status, newState: targetState, message: 'State updated successfully' };
   }
 
