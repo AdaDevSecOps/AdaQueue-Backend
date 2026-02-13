@@ -12,6 +12,11 @@ export class QueueController {
     return this.queueService.createQueue(dto);
   }
 
+  @Post(':gen')
+  async generateQueue(@Body() dto: CreateQueueDto) {
+    return this.queueService.generateQueue(dto);
+  }
+
   @Get(':id')
   async getQueue(@Param('id') id: string) {
     return this.queueService.getQueue(id);

@@ -10,6 +10,7 @@ export class SequenceService {
     return s.substring(0, 128);
   }
 
+  // สร้างชื่อ sequence จาก agnCode, profileCode, displayCode, name
   buildName(agnCode: string, profileCode: string, displayCode: string, name: string) {
     const a = this.sanitizeId(agnCode);
     const p = this.sanitizeId(profileCode);
@@ -19,7 +20,38 @@ export class SequenceService {
     return joined || 'SEQ_DEFAULT';
   }
 
+  // เพิ่ม sequence ถ้ายังไม่มี ใน schema dbo
   async ensure(name: string, opts?: { start?: number; increment?: number; min?: number; max?: number; cycle?: boolean; cache?: number }) {
+    const start = opts?.start ?? 1;
+    const inc = opts?.increment ?? 1;
+    const min = opts?.min ?? 1;
+    const max = opts?.max ?? 999;
+    const cycle = opts?.cycle ?? true;
+    const cache = opts?.cache ?? 20;
+    const qn = name.replace(/]/g, ']]');
+    // Use direct string injection since name is sanitized (A-Z0-9_)
+    const sqlCheck = `SELECT 1 FROM sys.sequences WHERE name = '${qn}' AND schema_id = SCHEMA_ID('dbo')`;
+    const exists = await this.dataSource.query(sqlCheck);
+    if (exists && exists.length) return;
+    const ddl = `CREATE SEQUENCE dbo.[${qn}] AS INT START WITH ${start} INCREMENT BY ${inc} MINVALUE ${min} MAXVALUE ${max} ${cycle ? 'CYCLE' : ''} CACHE ${cache}`;
+    await this.dataSource.query(ddl);
+  }
+
+  // [Test] สร้างชื่อ sequence 
+  testBuildName(agnCode: string, bchCode: string, preFix: string, customerType: string) {
+    const agn = agnCode ? 'SG_AGN'+agnCode : '';
+    const bch = bchCode ? 'BCH'+bchCode : '';
+    const cusType = (customerType === '00001') ? 'KIOSK' : 'POS';
+    const prefix = preFix ? 'Q'+preFix : '';
+    const a = this.sanitizeId(agn+bch);
+    const p = this.sanitizeId(cusType);
+    const d = this.sanitizeId(prefix);
+    const joined = [a, p, d].filter(Boolean).join('_');
+    return joined || 'SEQ_DEFAULT';
+  }
+
+  // [Test] เพิ่ม sequence ถ้ายังไม่มี ใน schema dbo
+  async testEnsure(name: string, opts?: { start?: number; increment?: number; min?: number; max?: number; cycle?: boolean; cache?: number }) {
     const start = opts?.start ?? 1;
     const inc = opts?.increment ?? 1;
     const min = opts?.min ?? 1;

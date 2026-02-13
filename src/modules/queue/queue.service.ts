@@ -85,6 +85,78 @@ export class QueueService {
     }
   }
 
+  async generateQueue(dto: CreateQueueDto): Promise<QueueEntity> {
+    let config: any;
+    try {
+      config = await this.workflowConfig.getWorkflowByIndustry(dto.industry);
+    } catch {
+      config = { flowCode: dto.industry || 'FLOW_BANK_001', initialState: 'WAITING' };
+    }
+    
+    // Generate DocNo (Mocking running number)
+    const docNo = `Q${Date.now()}`;
+    
+    const attr = dto.attributes || {};
+    const queueType = attr.queueType || attr.serviceGroup;
+
+    const displayCode = (attr.kioskCode || attr.displayCode || attr.counter || '') as string;
+    const agnCode = dto.agnCode || 'AGN';
+
+    const bchCode = dto.bchCode || '';
+    const preFix = dto.preFix || '';
+    const customerType = dto.customerType || '';
+    
+    const seqName = this.sequenceService.testBuildName(agnCode, bchCode, preFix, customerType);
+    let nextNo = 1;
+    try {
+      await this.sequenceService.testEnsure(seqName);
+      nextNo = await this.sequenceService.next(seqName);
+    } catch (err) {
+      console.error('Sequence generation failed, using fallback', err);
+      // Fallback to random or timestamp if sequence fails to avoid stopping the world
+      nextNo = Math.floor(Date.now() % 100000); 
+    }
+    let ticketNo = `${dto.preFix}${String(nextNo).padStart(4, '0')}`;
+
+    const newQueue = new QueueEntity({
+      docNo: docNo,
+      date: new Date(),
+      // configCode: config.flowCode, // Simplified
+      profileCode: dto.profileId,  // Store Profile ID
+      agnCode: dto.agnCode,        // Agency Code
+      queueNo: nextNo,
+      customerName: dto.customerName,
+      tel: dto.tel,
+      status: config.initialState || 'WAITING', // Start from Initial State
+      queueType: queueType,
+      
+      // Dynamic Fields
+      refId: dto.refId,
+      refType: dto.refType,
+      ticketNo: ticketNo,
+      data: { 
+        ...attr, 
+        queueType, 
+        profileId: dto.profileId,
+        sequenceName: seqName,
+        sequenceNo: nextNo,
+        queueNo: nextNo,
+      },
+      
+      checkInTime: new Date()
+    });
+
+    try {
+      const saved = await this.queueRepository.create(newQueue);
+      try {
+        await this.eventService.publish(EventType.QUEUE_CREATED, saved, saved.docNo);
+      } catch {}
+      return saved;
+    } catch (err: any) {
+      throw new BadRequestException(err?.message || 'Failed to create queue');
+    }
+  }
+
   // Retrieve Queue
   async getQueue(docNo: string): Promise<QueueEntity> {
     const queue = await this.queueRepository.findByDocNo(docNo);

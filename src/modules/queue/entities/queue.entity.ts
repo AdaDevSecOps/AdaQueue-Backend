@@ -65,6 +65,9 @@ export class QueueEntity {
   @Column({ name: 'FDQtxFinish', type: 'datetime', nullable: true })
   finishTime?: Date;
 
+  @Column({ name: 'FTQtxTicketNo', type: 'varchar', length: 10, nullable: true })
+  ticketNo?: string;
+
   constructor(partial: Partial<QueueEntity>) {
     Object.assign(this, partial);
   }
