@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ทดสอบ Call Next Queue</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-800 mb-8">🎯 ทดสอบระบบเรียกคิว (Call Next Queue)</h1>
+        
+        <!-- Form สำหรับกรอกข้อมูล -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">ตัวเลือก (Optional)</h2>
+            
+            <!-- DocNo for Queue Skipping -->
+            <div class="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded">
+                <label class="block text-sm font-bold text-yellow-800 mb-2">
+                    🎯 DocNo (ข้ามคิวไปยังคิวเฉพาะ)
+                </label>
+                <input 
+                    type="text" 
+                    id="docNo" 
+                    placeholder="เช่น Q1739702400000 (ถ้ากรอกจะข้ามไปยังคิวนี้ทันที)"
+                    class="w-full px-4 py-2 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                />
+                <p class="text-xs text-yellow-700 mt-1">
+                    ⚠️ ถ้ากรอก docNo จะข้ามไปยังคิวนี้โดยตรง (ไม่ค้นหาคิวถัดไป)
+                </p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Profile ID</label>
+                    <input 
+                        type="text" 
+                        id="profileId" 
+                        placeholder="เช่น TEST-PROFILE-001"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Service Group</label>
+                    <input 
+                        type="text" 
+                        id="serviceGroup" 
+                        placeholder="เช่น Q-TEST-001"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                </div>
+            </div>
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Target Status (สถานะที่ต้องการเปลี่ยน)</label>
+                <select 
+                    id="targetStatus" 
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                    <option value="CALLING" selected>CALLING (เรียกคิว)</option>
+                    <option value="SERVING">SERVING (กำลังให้บริการ)</option>
+                    <option value="IN_PROGRESS">IN_PROGRESS (กำลังดำเนินการ)</option>
+                </select>
+                <p class="text-xs text-gray-500 mt-1">Default: CALLING</p>
+            </div>
+        </div>
+
+        <!-- ปุ่ม CALL NEXT -->
+        <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl shadow-2xl p-8 mb-6">
+            <button 
+                id="callNextBtn"
+                class="w-full h-32 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 flex flex-col items-center justify-center gap-2 transition-transform active:scale-95"
+            >
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
+                </svg>
+                <span class="text-lg font-bold">CALL NEXT</span>
+            </button>
+        </div>
+
+        <!-- แสดงผลลัพธ์ -->
+        <div id="resultContainer" class="hidden">
+            <div id="successResult" class="hidden bg-green-50 border-l-4 border-green-500 rounded-lg p-6 mb-6">
+                <div class="flex items-center mb-4">
+                    <svg class="w-8 h-8 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <h3 class="text-2xl font-bold text-green-800">เรียกคิวสำเร็จ!</h3>
+                </div>
+                <div class="bg-white rounded-lg p-6 space-y-3">
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="font-semibold text-gray-600">หมายเลขคิว:</span>
+                        <span id="queueNo" class="text-3xl font-bold text-blue-600">-</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="font-semibold text-gray-600">ชื่อลูกค้า:</span>
+                        <span id="customerName" class="text-lg">-</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="font-semibold text-gray-600">เบอร์โทร:</span>
+                        <span id="customerTel" class="text-lg">-</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="font-semibold text-gray-600">สถานะ:</span>
+                        <span id="queueStatus" class="px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-semibold text-gray-600">DocNo:</span>
+                        <span id="docNo" class="text-sm text-gray-500 font-mono">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="errorResult" class="hidden bg-red-50 border-l-4 border-red-500 rounded-lg p-6">
+                <div class="flex items-center">
+                    <svg class="w-8 h-8 text-red-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div>
+                        <h3 class="text-xl font-bold text-red-800 mb-1">ไม่มีคิวที่รออยู่</h3>
+                        <p id="errorMessage" class="text-red-600">-</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Response JSON -->
+        <div class="bg-gray-800 rounded-lg p-6 mt-6">
+            <h3 class="text-white font-semibold mb-2">📋 Response JSON:</h3>
+            <pre id="jsonResponse" class="text-green-400 text-sm overflow-x-auto">กดปุ่ม CALL NEXT เพื่อเรียกคิว</pre>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+        
+        document.getElementById('callNextBtn').addEventListener('click', async () => {
+            const docNo = document.getElementById('docNo').value.trim();
+            const profileId = document.getElementById('profileId').value.trim();
+            const serviceGroup = document.getElementById('serviceGroup').value.trim();
+            const targetStatus = document.getElementById('targetStatus').value;
+            
+            const payload = {};
+            if (docNo) payload.docNo = docNo;
+            if (profileId) payload.profileId = profileId;
+            if (serviceGroup) payload.serviceGroup = serviceGroup;
+            if (targetStatus) payload.targetStatus = targetStatus;
+            
+            try {
+                // แสดง loading
+                const btn = document.getElementById('callNextBtn');
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+                
+                const response = await fetch(`${API_BASE}/staff/console/call-next`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                // แสดง JSON Response
+                document.getElementById('jsonResponse').textContent = JSON.stringify(data, null, 2);
+                document.getElementById('resultContainer').classList.remove('hidden');
+                
+                if (data.success && data.queue) {
+                    // แสดงผลสำเร็จ
+                    document.getElementById('successResult').classList.remove('hidden');
+                    document.getElementById('errorResult').classList.add('hidden');
+                    
+                    document.getElementById('queueNo').textContent = data.queue.queueNo || '-';
+                    document.getElementById('customerName').textContent = data.queue.customerName || '-';
+                    document.getElementById('customerTel').textContent = data.queue.tel || '-';
+                    document.getElementById('queueStatus').textContent = data.queue.status || '-';
+                    document.getElementById('docNo').textContent = data.queue.docNo || '-';
+                } else {
+                    // แสดงข้อความว่าไม่มีคิว
+                    document.getElementById('successResult').classList.add('hidden');
+                    document.getElementById('errorResult').classList.remove('hidden');
+                    document.getElementById('errorMessage').textContent = data.message || 'ไม่มีคิวที่รออยู่';
+                }
+                
+                // ปลด loading
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('jsonResponse').textContent = `Error: ${error.message}`;
+                document.getElementById('resultContainer').classList.remove('hidden');
+                document.getElementById('successResult').classList.add('hidden');
+                document.getElementById('errorResult').classList.remove('hidden');
+                document.getElementById('errorMessage').textContent = error.message;
+                
+                // ปลด loading
+                const btn = document.getElementById('callNextBtn');
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        });
+    </script>
+</body>
+</html>

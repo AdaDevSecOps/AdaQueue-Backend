@@ -167,4 +167,50 @@ export class QueueService {
   private async nextRunningNumber(profileId?: string, serviceGroup?: string): Promise<number> {
     return this.getNextNumber(profileId, serviceGroup);
   }
+
+  // Call Next Queue - ดึงคิวถัดไปที่รออยู่
+  async callNextQueue(docNo?: string, profileId?: string, serviceGroup?: string, targetStatus?: string): Promise<QueueEntity | null> {
+    try {
+      let nextQueue: QueueEntity | null = null;
+
+      // กรณี 1: ถ้ามี docNo = ข้ามคิว (เลือกคิวเฉพาะ)
+      if (docNo) {
+        nextQueue = await this.queueRepository.findByDocNo(docNo);
+        
+        if (!nextQueue) {
+          throw new BadRequestException(`Queue with docNo ${docNo} not found`);
+        }
+        
+        // ตรวจสอบว่าคิวอยู่ในสถานะที่สามารถเรียกได้
+        const allowedStatuses = ['WAITING', 'WAIT', 'WAIT_TABLE', 'PENDING', null];
+        if (!allowedStatuses.includes(nextQueue.status)) {
+          throw new BadRequestException(
+            `Cannot call queue with status: ${nextQueue.status}. Allowed statuses: WAITING, WAIT, WAIT_TABLE, PENDING, or null`
+          );
+        }
+      } 
+      // กรณี 2: ไม่มี docNo = ค้นหาคิวถัดไปที่รออยู่
+      else {
+        nextQueue = await this.queueRepository.findNextWaiting(profileId, serviceGroup);
+        
+        if (!nextQueue) {
+          return null; // ไม่มีคิวที่รออยู่
+        }
+      }
+      
+      // อัพเดทสถานะคิวเป็นค่าที่รับมา หรือ CALLING เป็นค่า default
+      const newStatus = targetStatus || 'CALLING';
+      await this.queueRepository.updateStatus(nextQueue.docNo, newStatus);
+      
+      // ดึงข้อมูลล่าสุดหลังอัพเดท
+      const updatedQueue = await this.queueRepository.findByDocNo(nextQueue.docNo);
+      return updatedQueue;
+    } catch (error) {
+      console.error('[QueueService] Error calling next queue:', error);
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to call next queue');
+    }
+  }
 }
