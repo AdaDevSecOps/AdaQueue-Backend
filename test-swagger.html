@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swagger API Documentation Preview</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-4xl font-bold text-gray-800 mb-2">📚 Swagger Documentation</h1>
+        <p class="text-gray-600 mb-8">API Documentation for Call Next Queue Feature</p>
+
+        <!-- Navigation Links -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-2xl font-bold mb-4">🔗 Quick Links</h2>
+            <div class="space-y-2">
+                <a href="http://localhost:3000/api/docs" target="_blank" 
+                   class="block px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-center font-semibold">
+                    🚀 Open Swagger UI
+                </a>
+                <a href="http://localhost:3000/api/docs-json" target="_blank"
+                   class="block px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-center font-semibold">
+                    📄 View OpenAPI JSON
+                </a>
+            </div>
+            <p class="text-sm text-gray-500 mt-4">
+                ⚠️ Make sure your backend server is running: <code class="bg-gray-100 px-2 py-1 rounded">npm run dev</code>
+            </p>
+        </div>
+
+        <!-- API Preview -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+            <div class="bg-blue-600 px-6 py-4">
+                <h2 class="text-2xl font-bold text-white">Staff Console APIs</h2>
+            </div>
+
+            <!-- Call Next Queue API -->
+            <div class="border-b">
+                <div class="px-6 py-4 bg-green-50">
+                    <div class="flex items-center gap-3">
+                        <span class="bg-green-600 text-white px-3 py-1 rounded font-mono text-sm font-bold">POST</span>
+                        <span class="font-mono text-lg">/api/staff/console/call-next</span>
+                    </div>
+                    <p class="text-gray-600 mt-2">Call Next Queue - เรียกคิวถัดไปที่รออยู่</p>
+                </div>
+                
+                <div class="px-6 py-4">
+                    <h3 class="font-bold text-lg mb-2">📥 Request Body</h3>
+                    <pre class="bg-gray-800 text-green-400 p-4 rounded-lg overflow-x-auto"><code>{
+  "profileId": "TEST-PROFILE-001",      // Optional
+  "serviceGroup": "Q-TEST-001"          // Optional
+}</code></pre>
+
+                    <h3 class="font-bold text-lg mb-2 mt-4">📤 Response (Success - Queue Found)</h3>
+                    <pre class="bg-gray-800 text-green-400 p-4 rounded-lg overflow-x-auto"><code>{
+  "success": true,
+  "message": "เรียกคิวสำเร็จ",
+  "queue": {
+    "docNo": "Q1739702400000",
+    "queueNo": 1,
+    "customerName": "คุณสมชาย ใจดี",
+    "tel": "081-111-1111",
+    "status": "CALLING",
+    "queueType": "Q-TEST-001",
+    "data": {
+      "serviceGroup": "Q-TEST-001",
+      "profileId": "TEST-PROFILE-001",
+      "category": "GENERAL"
+    }
+  }
+}</code></pre>
+
+                    <h3 class="font-bold text-lg mb-2 mt-4">📤 Response (No Queue Available)</h3>
+                    <pre class="bg-gray-800 text-yellow-400 p-4 rounded-lg overflow-x-auto"><code>{
+  "success": false,
+  "message": "ไม่มีคิวที่รออยู่",
+  "queue": null
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- Get Actions API -->
+            <div class="border-b">
+                <div class="px-6 py-4 bg-blue-50">
+                    <div class="flex items-center gap-3">
+                        <span class="bg-blue-600 text-white px-3 py-1 rounded font-mono text-sm font-bold">GET</span>
+                        <span class="font-mono text-lg">/api/staff/console/actions</span>
+                    </div>
+                    <p class="text-gray-600 mt-2">Get Allowed Actions for a Queue</p>
+                </div>
+                
+                <div class="px-6 py-4">
+                    <h3 class="font-bold text-lg mb-2">🔍 Query Parameters</h3>
+                    <div class="space-y-2">
+                        <div class="bg-gray-50 p-3 rounded">
+                            <span class="font-mono text-sm font-semibold">docNo</span>
+                            <span class="text-gray-600 ml-2">- Document number (e.g., Q1739702400000)</span>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded">
+                            <span class="font-mono text-sm font-semibold">industry</span>
+                            <span class="text-gray-600 ml-2">- Industry type (e.g., BANK)</span>
+                        </div>
+                    </div>
+
+                    <h3 class="font-bold text-lg mb-2 mt-4">📤 Response</h3>
+                    <pre class="bg-gray-800 text-green-400 p-4 rounded-lg overflow-x-auto"><code>{
+  "docNo": "Q1739702400000",
+  "currentState": "WAITING",
+  "actions": [
+    {
+      "label": "เรียกคิว",
+      "targetState": "CALLING",
+      "actionType": "TRANSITION",
+      "color": "primary"
+    }
+  ]
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- Execute Action API -->
+            <div>
+                <div class="px-6 py-4 bg-green-50">
+                    <div class="flex items-center gap-3">
+                        <span class="bg-green-600 text-white px-3 py-1 rounded font-mono text-sm font-bold">POST</span>
+                        <span class="font-mono text-lg">/api/staff/console/execute</span>
+                    </div>
+                    <p class="text-gray-600 mt-2">Execute Action to Change Queue State</p>
+                </div>
+                
+                <div class="px-6 py-4">
+                    <h3 class="font-bold text-lg mb-2">📥 Request Body</h3>
+                    <pre class="bg-gray-800 text-green-400 p-4 rounded-lg overflow-x-auto"><code>{
+  "docNo": "Q1739702400000",
+  "action": "CALLING",
+  "industry": "BANK"
+}</code></pre>
+
+                    <h3 class="font-bold text-lg mb-2 mt-4">📤 Response</h3>
+                    <pre class="bg-gray-800 text-green-400 p-4 rounded-lg overflow-x-auto"><code>{
+  "docNo": "Q1739702400000",
+  "oldState": "WAITING",
+  "newState": "CALLING",
+  "message": "State updated successfully"
+}</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-bold mb-4">✨ Swagger Features</h3>
+                <ul class="space-y-2 text-gray-700">
+                    <li>✅ Interactive API Testing</li>
+                    <li>✅ Request/Response Examples</li>
+                    <li>✅ Schema Validation</li>
+                    <li>✅ Multiple Response Examples</li>
+                    <li>✅ API Grouping by Tags</li>
+                    <li>✅ OpenAPI 3.0 Compatible</li>
+                </ul>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-bold mb-4">🎯 How to Use</h3>
+                <ol class="space-y-2 text-gray-700 list-decimal list-inside">
+                    <li>Start backend server</li>
+                    <li>Open Swagger UI link</li>
+                    <li>Find your API endpoint</li>
+                    <li>Click "Try it out"</li>
+                    <li>Fill in the parameters</li>
+                    <li>Click "Execute"</li>
+                    <li>View the response</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- DTOs -->
+        <div class="bg-white rounded-lg shadow-md p-6 mt-6">
+            <h2 class="text-2xl font-bold mb-4">📦 DTO Definitions</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <h3 class="font-bold text-lg mb-2 text-blue-600">CallNextQueueDto</h3>
+                    <pre class="bg-gray-800 text-green-400 p-4 rounded-lg overflow-x-auto"><code>class CallNextQueueDto {
+  profileId?: string;       // Optional - Profile ID to filter
+  serviceGroup?: string;    // Optional - Service Group to filter
+}</code></pre>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-lg mb-2 text-blue-600">QueueResponseDto</h3>
+                    <pre class="bg-gray-800 text-green-400 p-4 rounded-lg overflow-x-auto"><code>class QueueResponseDto {
+  docNo: string;            // Document number
+  queueNo: number;          // Queue number
+  customerName: string;     // Customer name
+  tel: string;              // Telephone
+  status: string;           // Queue status
+  queueType: string;        // Queue type
+  data?: any;               // Additional data
+}</code></pre>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-lg mb-2 text-blue-600">CallNextQueueResponseDto</h3>
+                    <pre class="bg-gray-800 text-green-400 p-4 rounded-lg overflow-x-auto"><code>class CallNextQueueResponseDto {
+  success: boolean;         // Operation success
+  message: string;          // Response message
+  queue: QueueResponseDto | null;  // Queue data or null
+}</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg shadow-md p-6 mt-6 text-white text-center">
+            <p class="text-lg font-semibold">🎉 Swagger Documentation is Ready!</p>
+            <p class="mt-2">Open <code class="bg-white/20 px-2 py-1 rounded">http://localhost:3000/api/docs</code> to explore</p>
+        </div>
+    </div>
+
+    <script>
+        // Check if server is running
+        async function checkServer() {
+            try {
+                const response = await fetch('http://localhost:3000/api/docs-json');
+                if (response.ok) {
+                    document.body.insertAdjacentHTML('afterbegin', `
+                        <div class="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg">
+                            ✅ Server is running!
+                        </div>
+                    `);
+                }
+            } catch (error) {
+                document.body.insertAdjacentHTML('afterbegin', `
+                    <div class="fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg">
+                        ⚠️ Server is not running. Start with: npm run dev
+                    </div>
+                `);
+            }
+        }
+        
+        checkServer();
+    </script>
+</body>
+</html>

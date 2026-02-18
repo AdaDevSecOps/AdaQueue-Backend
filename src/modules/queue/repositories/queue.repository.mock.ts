@@ -32,4 +32,27 @@ export class MockQueueRepository implements IQueueRepository {
       this.store.set(docNo, queue);
     }
   }
+
+  async findNextWaiting(profileId?: string, serviceGroup?: string): Promise<QueueEntity | null> {
+    const allQueues = Array.from(this.store.values());
+    
+    // Filter by waiting status (รวม null ด้วย)
+    const waitingStatuses = ['WAITING', 'WAIT', 'WAIT_TABLE', 'PENDING', null];
+    let filtered = allQueues.filter(q => waitingStatuses.includes(q.status));
+    
+    // Filter by profile if provided
+    if (profileId) {
+      filtered = filtered.filter(q => q.profileCode === profileId);
+    }
+    
+    // Filter by service group if provided
+    if (serviceGroup) {
+      filtered = filtered.filter(q => (q.data as any)?.serviceGroup === serviceGroup);
+    }
+    
+    // Sort by queue number (oldest first)
+    filtered.sort((a, b) => (a.queueNo || 0) - (b.queueNo || 0));
+    
+    return filtered[0] || null;
+  }
 }
