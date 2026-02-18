@@ -32,4 +32,28 @@ export class TypeOrmQueueRepository implements IQueueRepository {
   async updateStatus(docNo: string, status: string): Promise<void> {
     await this.repository.update({ docNo }, { status });
   }
+
+  async findNextWaiting(profileId?: string, serviceGroup?: string): Promise<QueueEntity | null> {
+    const queryBuilder = this.repository.createQueryBuilder('queue');
+    
+    // Filter by waiting status (รวม null ด้วย)
+    queryBuilder.where('(queue.status IS NULL OR queue.status IN (:...statuses))', { 
+      statuses: ['WAITING', 'WAIT', 'WAIT_TABLE', 'PENDING'] 
+    });
+    
+    // Filter by profile if provided
+    if (profileId) {
+      queryBuilder.andWhere('queue.profileCode = :profileId', { profileId });
+    }
+    
+    // Filter by service group if provided (in JSON data field)
+    if (serviceGroup) {
+      queryBuilder.andWhere("JSON_VALUE(queue.data, '$.serviceGroup') = :serviceGroup", { serviceGroup });
+    }
+    
+    // Order by queue number (oldest first)
+    queryBuilder.orderBy('queue.queueNo', 'ASC');
+    
+    return await queryBuilder.getOne();
+  }
 }
