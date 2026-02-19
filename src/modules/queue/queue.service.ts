@@ -286,6 +286,15 @@ export class QueueService {
       
       // ดึงข้อมูลล่าสุดหลังอัพเดท
       const updatedQueue = await this.queueRepository.findByDocNo(nextQueue.docNo);
+      
+      try {
+        await this.eventService.publishLocal(
+          EventType.QUEUE_STATE_CHANGED,
+          { docNo: updatedQueue?.docNo, newState: newStatus, data: updatedQueue },
+          updatedQueue?.docNo
+        );
+      } catch {}
+      
       return updatedQueue;
     } catch (error) {
       console.error('[QueueService] Error calling next queue:', error);

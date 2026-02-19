@@ -48,7 +48,7 @@ export class TypeOrmQueueRepository implements IQueueRepository {
     
     // Filter by service group if provided (in JSON data field)
     if (serviceGroup) {
-      queryBuilder.andWhere("JSON_VALUE(queue.data, '$.serviceGroup') = :serviceGroup", { serviceGroup });
+      queryBuilder.andWhere("JSON_VALUE(queue.FTQtxDataJson, '$.serviceGroup') = :serviceGroup", { serviceGroup });
     }
     
     // Order by queue number (oldest first)

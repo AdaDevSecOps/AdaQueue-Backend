@@ -15,6 +15,7 @@ export interface IEventPayload {
   meta?: {
     source: string;
     retryCount?: number;
+    localOnly?: boolean;
   };
 }
 

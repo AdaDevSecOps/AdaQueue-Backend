@@ -17,6 +17,7 @@ export class EventsGateway {
 
   @OnEvent(EventType.QUEUE_CREATED)
   handleQueueCreated(payload: any) {
+    if (process.env.WS_FROM_RMQ_ONLY === 'true') return;
     const data = payload?.data || payload;
     this.server.emit('queue:update', { type: 'created', queue: data });
     this.logger.log(`Emitted queue.created for ${data?.docNo || ''}`);

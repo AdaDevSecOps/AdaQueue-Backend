@@ -13,6 +13,7 @@ import { PosController } from './modules/integration/pos/pos.controller';
 import { NotificationService } from './modules/notification/notification.service';
 import { SequenceModule } from './modules/sequence/sequence.module';
 import { EventsGateway } from './modules/events/events.gateway';
+import { EventsRmqListener } from './modules/events/events.rmq.listener';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { EventsGateway } from './modules/events/events.gateway';
     EventService,
     NotificationService,
     EventsGateway,
+    EventsRmqListener,
   ],
 })
 export class AppModule {}
