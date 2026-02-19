@@ -303,7 +303,8 @@ export class StaffConsoleController {
         tel: nextQueue.tel,
         status: nextQueue.status,
         queueType: nextQueue.queueType,
-        data: nextQueue.data
+        data: nextQueue.data,
+        ticketNo: nextQueue.ticketNo,
       }
     };
   }
