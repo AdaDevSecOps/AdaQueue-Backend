@@ -59,6 +59,24 @@ export class CallNextQueueDto {
   @IsOptional()
   @IsString()
   targetStatus?: string;
+
+  @ApiPropertyOptional({
+    description: 'Reference ID to store with the queue when calling (e.g., service point name)',
+    example: 'Counter1',
+    type: String
+  })
+  @IsOptional()
+  @IsString()
+  refId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Reference Type to store with the queue (e.g., service point code)',
+    example: 'POINT-01',
+    type: String
+  })
+  @IsOptional()
+  @IsString()
+  refType?: string;
 }
 
 /**

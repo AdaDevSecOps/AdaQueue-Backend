@@ -251,7 +251,7 @@ export class QueueService {
   }
 
   // Call Next Queue - ดึงคิวถัดไปที่รออยู่
-  async callNextQueue(docNo?: string, profileId?: string, serviceGroup?: string, targetStatus?: string): Promise<QueueEntity | null> {
+  async callNextQueue(docNo?: string, profileId?: string, serviceGroup?: string, targetStatus?: string, refId?: string, refType?: string): Promise<QueueEntity | null> {
     try {
       let nextQueue: QueueEntity | null = null;
 
@@ -282,7 +282,7 @@ export class QueueService {
       
       // อัพเดทสถานะคิวเป็นค่าที่รับมา หรือ CALLING เป็นค่า default
       const newStatus = targetStatus || 'CALLING';
-      await this.queueRepository.updateStatus(nextQueue.docNo, newStatus);
+      await this.queueRepository.updateStatus(nextQueue.docNo, newStatus, refId, refType);
       
       // ดึงข้อมูลล่าสุดหลังอัพเดท
       const updatedQueue = await this.queueRepository.findByDocNo(nextQueue.docNo);

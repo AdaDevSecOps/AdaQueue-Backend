@@ -29,8 +29,11 @@ export class TypeOrmQueueRepository implements IQueueRepository {
     return await this.repository.find({ where: { profileCode: profileId } });
   }
 
-  async updateStatus(docNo: string, status: string): Promise<void> {
-    await this.repository.update({ docNo }, { status });
+  async updateStatus(docNo: string, status: string, refId?: string, refType?: string): Promise<void> {
+    const update: Partial<QueueEntity> = { status };
+    if (typeof refId === 'string') update.refId = refId;
+    if (typeof refType === 'string') update.refType = refType;
+    await this.repository.update({ docNo }, update);
   }
 
   async findNextWaiting(profileId?: string, serviceGroup?: string): Promise<QueueEntity | null> {
@@ -52,7 +55,7 @@ export class TypeOrmQueueRepository implements IQueueRepository {
     }
     
     // Order by queue number (oldest first)
-    queryBuilder.orderBy('queue.queueNo', 'ASC');
+    queryBuilder.orderBy('queue.date', 'ASC');
     
     return await queryBuilder.getOne();
   }

@@ -25,10 +25,12 @@ export class MockQueueRepository implements IQueueRepository {
     return Array.from(this.store.values());
   }
 
-  async updateStatus(docNo: string, status: string): Promise<void> {
+  async updateStatus(docNo: string, status: string, refId?: string, refType?: string): Promise<void> {
     const queue = this.store.get(docNo);
     if (queue) {
       queue.status = status;
+      if (typeof refId === 'string') queue.refId = refId;
+      if (typeof refType === 'string') queue.refType = refType;
       this.store.set(docNo, queue);
     }
   }

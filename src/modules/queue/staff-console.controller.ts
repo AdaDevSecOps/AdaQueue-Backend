@@ -282,7 +282,9 @@ export class StaffConsoleController {
       body.docNo,
       body.profileId, 
       body.serviceGroup,
-      body.targetStatus
+      body.targetStatus,
+      body.refId,
+      body.refType
     );
     
     if (!nextQueue) {
