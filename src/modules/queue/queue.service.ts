@@ -244,6 +244,50 @@ export class QueueService {
     return { action: targetState, updated };
   }
 
+  // Advance Process: STATE_2 -> STATE_3 -> FINAL
+  async startProcess(docNo: string, industry?: string) {
+    const q = await this.getQueue(docNo);
+    const oldState = q.status;
+
+    let config: any = null;
+    try {
+      if (industry) config = await this.workflowConfig.getWorkflowByIndustry(industry);
+    } catch {}
+
+    const states = (config && (config.states || {})) || {};
+
+    let next: string | null = null;
+    if (oldState === 'STATE_2') {
+      next = states['STATE_3'] ? 'STATE_3' : 'STATE_3';
+    } else if (oldState === 'STATE_3') {
+      if (states['STATE_4']) next = 'STATE_4';
+      else if (states['COMPLETED']) next = 'COMPLETED';
+      else next = 'FINISH';
+    } else {
+      // If unknown current state, attempt to complete
+      next = 'FINISH';
+    }
+
+    // Try workflow validation first; fallback to direct update
+    try {
+      if (industry && next && states[next]) {
+        return await this.changeState(docNo, next, industry);
+      }
+    } catch {}
+
+    await this.queueRepository.updateStatus(docNo, next || 'FINISH');
+    const updated = await this.queueRepository.findByDocNo(docNo);
+    try {
+      await this.eventService.publishLocal(
+        EventType.QUEUE_STATE_CHANGED,
+        { docNo, newState: next || 'FINISH', data: updated },
+        docNo
+      );
+    } catch {}
+
+    return { docNo, oldState, newState: next || 'FINISH', message: 'Process advanced' };
+  }
+
   async getNextNumber(profileId?: string, serviceGroup?: string): Promise<number> {
     try {
       const all = await this.queueRepository.findAllByProfile(profileId || '');

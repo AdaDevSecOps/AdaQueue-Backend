@@ -123,6 +123,27 @@ export class StaffConsoleController {
       return await this.queueService.changeState(body.docNo, body.action, body.industry);
   }
 
+  // Start Process - Advance STATE_2 -> STATE_3 -> FINAL
+  @Post('start-process')
+  @ApiOperation({
+    summary: 'Start/Advance Process',
+    description: 'Advance queue state: STATE_2 → STATE_3 → FINAL (STATE_4/COMPLETED/FINISH)'
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['docNo'],
+      properties: {
+        docNo: { type: 'string', example: 'Q1739702400000' },
+        industry: { type: 'string', example: 'BANK' }
+      }
+    }
+  })
+  @ApiResponse({ status: 200, description: 'Process advanced' })
+  async startProcess(@Body() body: { docNo: string, industry?: string }) {
+    return await this.queueService.startProcess(body.docNo, body.industry);
+  }
+
   // Call Next Queue - เรียกคิวถัดไปที่รออยู่
   @Post('call-next')
   @ApiOperation({
