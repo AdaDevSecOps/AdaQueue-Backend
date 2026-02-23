@@ -215,6 +215,21 @@ export class QueueService {
     return all.filter(q => q.data?.profileId === profileId);
   }
 
+  // Finish Queue without workflow validation (direct update)
+  async finishQueue(docNo: string) {
+    const q = await this.getQueue(docNo);
+    const old = q.status;
+    await this.queueRepository.updateStatus(docNo, 'FINISH');
+    try {
+      await this.eventService.publishLocal(
+        EventType.QUEUE_STATE_CHANGED,
+        { docNo, newState: 'FINISH', data: q },
+        docNo
+      );
+    } catch {}
+    return { docNo, oldState: old, newState: 'FINISH', message: 'State updated to FINISH' };
+  }
+
   async bulkAction(action: string, docNos: string[], industry: string) {
     const target = (action || '').toUpperCase();
     const map: Record<string, string> = { CANCEL: 'CANCELLED', SKIP: 'SKIPPED' };

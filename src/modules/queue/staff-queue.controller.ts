@@ -9,4 +9,9 @@ export class StaffQueueController {
   async bulk(@Body() body: { action: string; docNos: string[]; industry?: string }) {
     return this.queueService.bulkAction(body.action, body.docNos, body.industry || 'BANK');
   }
+
+  @Post('finish')
+  async finish(@Body() body: { docNo: string }) {
+    return this.queueService.finishQueue(body.docNo);
+  }
 }
