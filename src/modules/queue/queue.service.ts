@@ -244,51 +244,54 @@ export class QueueService {
     return { action: targetState, updated };
   }
 
-  // Advance Process: STATE_2 -> STATE_3 -> FINAL
-  async startProcess(docNo: string, industry?: string) {
+  // Advance Process: STATE_N -> next STATE or FINISH
+  async startProcess(docNo: string, industry?: string, targetStatus?: string) {
     const q = await this.getQueue(docNo);
     const oldState = q.status;
 
-    let config: any = null;
-    try {
-      if (industry) config = await this.workflowConfig.getWorkflowByIndustry(industry);
-    } catch {}
+    // If frontend already computed the next state, use it directly
+    if (targetStatus) {
+      let config: any = null;
+      try {
+        if (industry) config = await this.workflowConfig.getWorkflowByIndustry(industry);
+      } catch {}
 
-    const states = (config && (config.states || {})) || {};
+      const states = (config && (config.states || {})) || {};
+      const isFinal = states[targetStatus]?.type === 'FINAL';
+      const persistState = isFinal ? 'FINISH' : targetStatus;
 
-    let next: string | null = null;
-    if (oldState === 'STATE_2') {
-      next = states['STATE_3'] ? 'STATE_3' : 'STATE_3';
-    } else if (oldState === 'STATE_3') {
-      if (states['STATE_4']) next = 'STATE_4';
-      else next = 'FINISH';
-    } else {
-      // If unknown current state, attempt to complete
-      next = 'FINISH';
+      // Try validated transition first
+      try {
+        if (!isFinal && industry && states[targetStatus]) {
+          return await this.changeState(docNo, targetStatus, industry);
+        }
+      } catch {}
+
+      await this.queueRepository.updateStatus(docNo, persistState);
+      const updated = await this.queueRepository.findByDocNo(docNo);
+      try {
+        await this.eventService.publishLocal(
+          EventType.QUEUE_STATE_CHANGED,
+          { docNo, newState: persistState, data: updated },
+          docNo
+        );
+      } catch {}
+
+      return { docNo, oldState, newState: persistState, message: 'Process advanced' };
     }
 
-    // If the computed 'next' is a FINAL state in the workflow, persist as 'FINISH' instead
-    const isFinalNext = next && states[next]?.type === 'FINAL';
-
-    // Try workflow validation first only for non-final states
-    try {
-      if (!isFinalNext && industry && next && states[next]) {
-        return await this.changeState(docNo, next, industry);
-      }
-    } catch {}
-
-    const persistState = isFinalNext ? 'FINISH' : (next || 'FINISH');
-    await this.queueRepository.updateStatus(docNo, persistState);
+    // Fallback: no targetStatus provided → go to FINISH
+    await this.queueRepository.updateStatus(docNo, 'FINISH');
     const updated = await this.queueRepository.findByDocNo(docNo);
     try {
       await this.eventService.publishLocal(
         EventType.QUEUE_STATE_CHANGED,
-        { docNo, newState: persistState, data: updated },
+        { docNo, newState: 'FINISH', data: updated },
         docNo
       );
     } catch {}
 
-    return { docNo, oldState, newState: persistState, message: 'Process advanced' };
+    return { docNo, oldState, newState: 'FINISH', message: 'Process advanced' };
   }
 
   async getNextNumber(profileId?: string, serviceGroup?: string): Promise<number> {

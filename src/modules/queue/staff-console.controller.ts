@@ -135,13 +135,14 @@ export class StaffConsoleController {
       required: ['docNo'],
       properties: {
         docNo: { type: 'string', example: 'Q1739702400000' },
-        industry: { type: 'string', example: 'BANK' }
+        industry: { type: 'string', example: 'BANK' },
+        targetStatus: { type: 'string', example: 'STATE_3', description: 'Target state to transition to (computed by frontend)' }
       }
     }
   })
   @ApiResponse({ status: 200, description: 'Process advanced' })
-  async startProcess(@Body() body: { docNo: string, industry?: string }) {
-    return await this.queueService.startProcess(body.docNo, body.industry);
+  async startProcess(@Body() body: { docNo: string, industry?: string, targetStatus?: string }) {
+    return await this.queueService.startProcess(body.docNo, body.industry, body.targetStatus);
   }
 
   // Call Next Queue - เรียกคิวถัดไปที่รออยู่
