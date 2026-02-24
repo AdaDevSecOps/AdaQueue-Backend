@@ -383,4 +383,21 @@ export class QueueService {
     
     return { docNo, newState: 'WAITING', message: 'Ticket skipped successfully' };
   }
+
+  async cancelQueue(docNo: string) {
+    const q = await this.getQueue(docNo);
+    await this.queueRepository.updateStatus(docNo, 'CANCEL');
+    
+    // Fetch updated to publish correctly
+    const updated = await this.queueRepository.findByDocNo(docNo);
+    try {
+      await this.eventService.publishLocal(
+        EventType.QUEUE_STATE_CHANGED,
+        { docNo, newState: 'CANCEL', data: updated },
+        docNo
+      );
+    } catch {}
+    
+    return { docNo, newState: 'CANCEL', message: 'Ticket cancelled successfully' };
+  }
 }

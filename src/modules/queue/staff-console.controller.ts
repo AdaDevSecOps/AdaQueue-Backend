@@ -349,4 +349,22 @@ export class StaffConsoleController {
   async skipQueue(@Body() body: { docNo: string }) {
     return await this.queueService.skipQueue(body.docNo);
   }
+
+  @Post('cancel')
+  @ApiOperation({
+    summary: 'Cancel Queue',
+    description: 'ยกเลิกคิว (เปลี่ยนสถานะเป็น CANCEL)'
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['docNo'],
+      properties: {
+        docNo: { type: 'string', example: 'Q1739702400000' }
+      }
+    }
+  })
+  async cancelQueue(@Body() body: { docNo: string }) {
+    return await this.queueService.cancelQueue(body.docNo);
+  }
 }
