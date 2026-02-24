@@ -261,31 +261,34 @@ export class QueueService {
       next = states['STATE_3'] ? 'STATE_3' : 'STATE_3';
     } else if (oldState === 'STATE_3') {
       if (states['STATE_4']) next = 'STATE_4';
-      else if (states['COMPLETED']) next = 'COMPLETED';
       else next = 'FINISH';
     } else {
       // If unknown current state, attempt to complete
       next = 'FINISH';
     }
 
-    // Try workflow validation first; fallback to direct update
+    // If the computed 'next' is a FINAL state in the workflow, persist as 'FINISH' instead
+    const isFinalNext = next && states[next]?.type === 'FINAL';
+
+    // Try workflow validation first only for non-final states
     try {
-      if (industry && next && states[next]) {
+      if (!isFinalNext && industry && next && states[next]) {
         return await this.changeState(docNo, next, industry);
       }
     } catch {}
 
-    await this.queueRepository.updateStatus(docNo, next || 'FINISH');
+    const persistState = isFinalNext ? 'FINISH' : (next || 'FINISH');
+    await this.queueRepository.updateStatus(docNo, persistState);
     const updated = await this.queueRepository.findByDocNo(docNo);
     try {
       await this.eventService.publishLocal(
         EventType.QUEUE_STATE_CHANGED,
-        { docNo, newState: next || 'FINISH', data: updated },
+        { docNo, newState: persistState, data: updated },
         docNo
       );
     } catch {}
 
-    return { docNo, oldState, newState: next || 'FINISH', message: 'Process advanced' };
+    return { docNo, oldState, newState: persistState, message: 'Process advanced' };
   }
 
   async getNextNumber(profileId?: string, serviceGroup?: string): Promise<number> {
