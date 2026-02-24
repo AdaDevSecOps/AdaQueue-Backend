@@ -57,4 +57,13 @@ export class MockQueueRepository implements IQueueRepository {
     
     return filtered[0] || null;
   }
+
+  async skipQueue(docNo: string): Promise<void> {
+    const queue = this.store.get(docNo);
+    if (queue) {
+      queue.status = 'WAITING';
+      queue.date = new Date();
+      this.store.set(docNo, queue);
+    }
+  }
 }

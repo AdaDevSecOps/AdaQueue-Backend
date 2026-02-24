@@ -366,4 +366,21 @@ export class QueueService {
       throw new BadRequestException('Failed to call next queue');
     }
   }
+
+  async skipQueue(docNo: string) {
+    const q = await this.getQueue(docNo);
+    await this.queueRepository.skipQueue(docNo);
+    
+    // Fetch updated to publish correctly
+    const updated = await this.queueRepository.findByDocNo(docNo);
+    try {
+      await this.eventService.publishLocal(
+        EventType.QUEUE_STATE_CHANGED,
+        { docNo, newState: 'WAITING', data: updated },
+        docNo
+      );
+    } catch {}
+    
+    return { docNo, newState: 'WAITING', message: 'Ticket skipped successfully' };
+  }
 }

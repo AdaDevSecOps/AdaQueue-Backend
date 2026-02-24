@@ -331,4 +331,22 @@ export class StaffConsoleController {
       }
     };
   }
+
+  @Post('skip')
+  @ApiOperation({
+    summary: 'Skip Active Queue',
+    description: 'ข้ามคิวที่กำลังเรียกอยู่ กลับไปสถานะ WAITING และปรับเวลาให้ไปต่อท้ายแถว'
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['docNo'],
+      properties: {
+        docNo: { type: 'string', example: 'Q1739702400000' }
+      }
+    }
+  })
+  async skipQueue(@Body() body: { docNo: string }) {
+    return await this.queueService.skipQueue(body.docNo);
+  }
 }

@@ -59,4 +59,11 @@ export class TypeOrmQueueRepository implements IQueueRepository {
     
     return await queryBuilder.getOne();
   }
+
+  async skipQueue(docNo: string): Promise<void> {
+    await this.repository.update({ docNo }, { 
+      status: 'WAITING',
+      date: new Date() 
+    });
+  }
 }

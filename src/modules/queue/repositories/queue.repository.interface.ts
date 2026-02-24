@@ -7,4 +7,5 @@ export interface IQueueRepository {
   findAllByProfile(profileId: string): Promise<QueueEntity[]>;
   updateStatus(docNo: string, status: string, refId?: string, refType?: string): Promise<void>;
   findNextWaiting(profileId?: string, serviceGroup?: string): Promise<QueueEntity | null>;
+  skipQueue(docNo: string): Promise<void>;
 }
