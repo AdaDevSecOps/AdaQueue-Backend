@@ -17,17 +17,17 @@ export class ProfileController {
   }
 
   @Post()
-  async createProfile(@Body() body: { code: string; name: string; config: any; agnCode?: string }) {
+  async createProfile(@Body() body: { code: string; name: string; config: any; agnCode?: string; businessType?: string }) {
     if (!body.code || !body.name) {
         throw new Error('Missing required fields: code, name');
     }
-    return await this.workflowConfig.saveProfile(body.code, body.name, body.config, body.agnCode);
+    return await this.workflowConfig.saveProfile(body.code, body.name, body.config, body.agnCode, body.businessType);
   }
 
   @Put(':code')
-  async updateProfile(@Param('code') code: string, @Body() body: { name: string; config: any; agnCode?: string }) {
+  async updateProfile(@Param('code') code: string, @Body() body: { name: string; config: any; agnCode?: string; businessType?: string }) {
     // Note: We don't require code in body as it's in the URL, but saveProfile expects it.
-    return await this.workflowConfig.saveProfile(code, body.name, body.config, body.agnCode);
+    return await this.workflowConfig.saveProfile(code, body.name, body.config, body.agnCode, body.businessType);
   }
 
   @Delete(':code')

@@ -100,7 +100,7 @@ export class WorkflowConfigService implements OnModuleInit {
     return await this.workflowRepo.save(entity);
   }
 
-  async saveProfile(code: string, name: string, config: any, agnCode?: string): Promise<ProfileEntity> {
+  async saveProfile(code: string, name: string, config: any, agnCode?: string, businessType?: string): Promise<ProfileEntity> {
     let entity = await this.profileRepo.findOne({ where: { code } });
     
     if (!entity) {
@@ -112,6 +112,10 @@ export class WorkflowConfigService implements OnModuleInit {
     
     if (agnCode !== undefined) {
         entity.agnCode = agnCode;
+    }
+
+    if (businessType !== undefined) {
+        entity.businessType = businessType;
     }
 
     if (config !== undefined) {

@@ -14,6 +14,9 @@ export class ProfileEntity {
   @Column({ name: 'FTPrfDataJson', type: 'nvarchar', length: 'max', nullable: true })
   configJson: string; // Service Points, Counters, etc.
 
+  @Column({ name: 'FTPrfBusinessType', type: 'varchar', length: 1, nullable: true })
+  businessType: string;
+
   get config(): any {
     try {
       return this.configJson ? JSON.parse(this.configJson) : {};
