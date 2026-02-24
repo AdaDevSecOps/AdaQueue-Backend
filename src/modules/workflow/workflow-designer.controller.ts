@@ -83,7 +83,8 @@ export class WorkflowDesignerController {
       let config = profile.config || {};
 
       if (config) {
-        return config;
+        // Include businessType from the profile entity (separate DB column)
+        return { ...config, businessType: profile.businessType || '1' };
       }
     } catch (e) {}
 
