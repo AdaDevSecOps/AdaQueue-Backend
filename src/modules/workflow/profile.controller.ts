@@ -8,7 +8,15 @@ export class ProfileController {
 
   @Get()
   async getAllProfiles() {
-    return await this.workflowConfig.getAllProfiles();
+    const profiles = await this.workflowConfig.getAllProfiles();
+    // Explicitly map to include `config` getter (TypeORM doesn't serialize getters automatically)
+    return profiles.map(p => ({
+      code: p.code,
+      name: p.name,
+      agnCode: p.agnCode,
+      businessType: p.businessType,
+      config: p.config  // This calls the getter which parses configJson
+    }));
   }
 
   @Get(':code')
