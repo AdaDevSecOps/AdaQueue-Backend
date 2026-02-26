@@ -1,28 +1,33 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { ConfigService } from '@nestjs/config';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module";
+import { ConfigService } from "@nestjs/config";
+import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
+import * as cookieParser from "cookie-parser";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
-  
+
+  // Use cookie-parser
+  app.use(cookieParser());
+
   // Enable CORS
   app.enableCors({
-    origin: configService.get('CORS_ORIGIN') || '*',
+    origin: configService.get("CORS_ORIGIN") || "*",
+    credentials: true, // Allow cookies to be sent along with cross-origin requests
   });
 
-  const port = configService.get('PORT') || 3000;
-  const prefix = configService.get('API_PREFIX') || 'api';
-  const host = configService.get('HOST') || '0.0.0.0';
-  
+  const port = configService.get("PORT") || 3000;
+  const prefix = configService.get("API_PREFIX") || "api";
+  const host = configService.get("HOST") || "0.0.0.0";
+
   app.setGlobalPrefix(prefix);
 
   // Swagger setup
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('AdaQueue API')
-    .setDescription('API documentation')
-    .setVersion('1.0')
+    .setTitle("AdaQueue API")
+    .setDescription("API documentation")
+    .setVersion("1.0")
     .addBearerAuth()
     .build();
   const swaggerDoc = SwaggerModule.createDocument(app, swaggerConfig);

@@ -14,6 +14,8 @@ import { NotificationService } from './modules/notification/notification.service
 import { SequenceModule } from './modules/sequence/sequence.module';
 import { EventsGateway } from './modules/events/events.gateway';
 import { EventsRmqListener } from './modules/events/events.rmq.listener';
+import { AuthModule } from './modules/auth/auth.module';
+import { UserModule } from './modules/user/user.module';
 
 @Module({
   imports: [
@@ -44,6 +46,8 @@ import { EventsRmqListener } from './modules/events/events.rmq.listener';
     WorkflowModule,
     PerformanceModule,
     SequenceModule,
+    AuthModule,
+    UserModule,
   ],
   controllers: [
     AnalyticsController,
