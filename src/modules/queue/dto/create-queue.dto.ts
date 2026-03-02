@@ -10,5 +10,5 @@ export class CreateQueueDto {
 
   bchCode?: string;
   preFix?: string;
-  customerType?: string;
+  serviceCode?: string;
 }

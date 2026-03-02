@@ -38,20 +38,20 @@ export class SequenceService {
   }
 
   // [Test] สร้างชื่อ sequence 
-  testBuildName(agnCode: string, bchCode: string, preFix: string, customerType: string) {
+  buildQueueSequenceName(agnCode: string, bchCode: string, preFix: string, serviceCode: string) {
     const agn = agnCode ? 'SG_AGN'+agnCode : '';
     const bch = bchCode ? 'BCH'+bchCode : '';
-    const cusType = (customerType === '00001') ? 'KIOSK' : 'POS';
+    const srvCode = (serviceCode === '00001') ? 'KIOSK' : 'POS';
     const prefix = preFix ? 'Q'+preFix : '';
     const a = this.sanitizeId(agn+bch);
-    const p = this.sanitizeId(cusType);
+    const p = this.sanitizeId(srvCode);
     const d = this.sanitizeId(prefix);
     const joined = [a, p, d].filter(Boolean).join('_');
     return joined || 'SEQ_DEFAULT';
   }
 
   // [Test] เพิ่ม sequence ถ้ายังไม่มี ใน schema dbo
-  async testEnsure(name: string, opts?: { start?: number; increment?: number; min?: number; max?: number; cycle?: boolean; cache?: number }) {
+  async ensureQueueSequence(name: string, opts?: { start?: number; increment?: number; min?: number; max?: number; cycle?: boolean; cache?: number }) {
     const start = opts?.start ?? 1;
     const inc = opts?.increment ?? 1;
     const min = opts?.min ?? 1;

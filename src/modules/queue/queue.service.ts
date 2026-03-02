@@ -86,12 +86,12 @@ export class QueueService {
   }
 
   async generateQueue(dto: CreateQueueDto): Promise<QueueEntity> {
-    let config: any;
-    try {
-      config = await this.workflowConfig.getWorkflowByIndustry(dto.industry);
-    } catch {
-      config = { flowCode: dto.industry || 'FLOW_BANK_001', initialState: 'WAITING' };
-    }
+    // let config: any;
+    // try {
+    //   config = await this.workflowConfig.getWorkflowByIndustry(dto.industry);
+    // } catch {
+    //   config = { flowCode: dto.industry || 'FLOW_BANK_001', initialState: 'WAITING' };
+    // }
     
     // Generate DocNo (Mocking running number)
     const docNo = `Q${Date.now()}`;
@@ -104,12 +104,12 @@ export class QueueService {
 
     const bchCode = dto.bchCode || '';
     const preFix = dto.preFix || '';
-    const customerType = dto.customerType || '';
+    const serviceCode = dto.serviceCode || '';
     
-    const seqName = this.sequenceService.testBuildName(agnCode, bchCode, preFix, customerType);
+    const seqName = this.sequenceService.buildQueueSequenceName(agnCode, bchCode, preFix, serviceCode);
     let nextNo = 1;
     try {
-      await this.sequenceService.testEnsure(seqName);
+      await this.sequenceService.ensureQueueSequence(seqName);
       nextNo = await this.sequenceService.next(seqName);
     } catch (err) {
       console.error('Sequence generation failed, using fallback', err);
@@ -127,7 +127,7 @@ export class QueueService {
       queueNo: nextNo,
       customerName: dto.customerName,
       tel: dto.tel,
-      status: config.initialState || 'WAITING', // Start from Initial State
+      status: 'WAITING', // Start from Initial State
       queueType: queueType,
       
       // Dynamic Fields

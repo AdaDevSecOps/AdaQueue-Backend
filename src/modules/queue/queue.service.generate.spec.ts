@@ -44,7 +44,7 @@ describe('QueueService.generateQueue -> EventService.publish', () => {
       attributes: { serviceGroup: 'RESTAURANT' },
       bchCode: '00002',
       preFix: 'W',
-      customerType: '00001',
+      serviceCode: '00001',
     };
 
     const result = await svc.generateQueue(dto);
