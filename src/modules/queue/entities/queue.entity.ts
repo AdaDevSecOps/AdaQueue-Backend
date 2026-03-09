@@ -33,6 +33,9 @@ export class QueueEntity {
   @Column({ name: 'FTQtxQueueType', type: 'varchar', length: 50, nullable: true })
   queueType: string;
 
+  @Column({ name: 'FTQtxPrevStatus', type: 'varchar', length: 20, nullable: true })
+  prevStatus?: string | null;
+
   // Reference Support
   @Column({ name: 'FTQtxRefID', type: 'varchar', length: 50, nullable: true })
   refId?: string;

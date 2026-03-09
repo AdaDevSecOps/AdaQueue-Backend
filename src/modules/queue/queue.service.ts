@@ -16,7 +16,7 @@ export class QueueService {
     @Inject('IQueueRepository') private readonly queueRepository: IQueueRepository,
     private readonly sequenceService: SequenceService,
     private readonly eventService: EventService
-  ) {}
+  ) { }
 
   // Create new Queue (Core Engine Logic)
   async createQueue(dto: CreateQueueDto): Promise<QueueEntity> {
@@ -26,16 +26,16 @@ export class QueueService {
     } catch {
       config = { flowCode: dto.industry || 'FLOW_BANK_001', initialState: 'WAITING' };
     }
-    
+
     // Generate DocNo (Mocking running number)
     const docNo = `Q${Date.now()}`;
-    
+
     const attr = dto.attributes || {};
     const queueType = attr.queueType || attr.serviceGroup;
 
     const displayCode = (attr.kioskCode || attr.displayCode || attr.counter || '') as string;
     const agnCode = dto.agnCode || 'AGN';
-    
+
     const seqName = this.sequenceService.buildName(agnCode, dto.profileId || '', displayCode || '', String(queueType || ''));
     let nextNo = 1;
     try {
@@ -44,7 +44,7 @@ export class QueueService {
     } catch (err) {
       console.error('Sequence generation failed, using fallback', err);
       // Fallback to random or timestamp if sequence fails to avoid stopping the world
-      nextNo = Math.floor(Date.now() % 100000); 
+      nextNo = Math.floor(Date.now() % 100000);
     }
 
     const newQueue = new QueueEntity({
@@ -58,19 +58,19 @@ export class QueueService {
       tel: dto.tel,
       status: config.initialState || 'WAITING', // Start from Initial State
       queueType: queueType,
-      
+
       // Dynamic Fields
       refId: dto.refId,
       refType: dto.refType,
-      data: { 
-        ...attr, 
-        queueType, 
+      data: {
+        ...attr,
+        queueType,
         profileId: dto.profileId,
         sequenceName: seqName,
         sequenceNo: nextNo,
         queueNo: nextNo
       },
-      
+
       checkInTime: new Date()
     });
 
@@ -78,7 +78,7 @@ export class QueueService {
       const saved = await this.queueRepository.create(newQueue);
       try {
         await this.eventService.publish(EventType.QUEUE_CREATED, saved, saved.docNo);
-      } catch {}
+      } catch { }
       return saved;
     } catch (err: any) {
       throw new BadRequestException(err?.message || 'Failed to create queue');
@@ -92,10 +92,10 @@ export class QueueService {
     // } catch {
     //   config = { flowCode: dto.industry || 'FLOW_BANK_001', initialState: 'WAITING' };
     // }
-    
+
     // Generate DocNo (Mocking running number)
     const docNo = `Q${Date.now()}`;
-    
+
     const attr = dto.attributes || {};
     const queueType = attr.queueType || attr.serviceGroup;
 
@@ -104,8 +104,22 @@ export class QueueService {
 
     const bchCode = dto.bchCode || '';
     const preFix = dto.preFix || '';
-    const serviceCode = dto.serviceCode || '';
-    
+    // Backwards compatibility for POS payload: If serviceCode is empty but kitchenCode is provided, use kitchenCode.
+    const serviceCode = dto.serviceCode || dto.kitchenCode || '';
+
+    // Lookup profileId from agnCode if not provided
+    let finalProfileId = dto.profileId;
+    if (!finalProfileId && dto.agnCode) {
+      try {
+        const profile = await this.workflowConfig.getProfileByAgnCode(dto.agnCode);
+        if (profile) {
+          finalProfileId = profile.code;
+        }
+      } catch (err) {
+        console.error('[QueueService] Failed to lookup profile by agnCode:', err);
+      }
+    }
+
     const seqName = this.sequenceService.buildQueueSequenceName(agnCode, bchCode, preFix, serviceCode);
     let nextNo = 1;
     try {
@@ -114,7 +128,7 @@ export class QueueService {
     } catch (err) {
       console.error('Sequence generation failed, using fallback', err);
       // Fallback to random or timestamp if sequence fails to avoid stopping the world
-      nextNo = Math.floor(Date.now() % 100000); 
+      nextNo = Math.floor(Date.now() % 100000);
     }
     let ticketNo = `${dto.preFix}${String(nextNo).padStart(4, '0')}`;
 
@@ -122,27 +136,28 @@ export class QueueService {
       docNo: docNo,
       date: new Date(),
       // configCode: config.flowCode, // Simplified
-      profileCode: dto.profileId,  // Store Profile ID
+      profileCode: finalProfileId,  // Store Profile ID
       agnCode: dto.agnCode,        // Agency Code
       queueNo: nextNo,
       customerName: dto.customerName,
       tel: dto.tel,
       status: 'WAITING', // Start from Initial State
       queueType: queueType,
-      
+
       // Dynamic Fields
       refId: dto.refId,
       refType: dto.refType,
       ticketNo: ticketNo,
-      data: { 
-        ...attr, 
-        queueType, 
-        profileId: dto.profileId,
+      data: {
+        ...attr,
+        queueType,
+        profileId: finalProfileId,
+        kitchenCode: dto.kitchenCode,  // Explicitly persist kitchenCode from POS
         sequenceName: seqName,
         sequenceNo: nextNo,
         queueNo: nextNo,
       },
-      
+
       checkInTime: new Date()
     });
 
@@ -150,7 +165,7 @@ export class QueueService {
       const saved = await this.queueRepository.create(newQueue);
       try {
         await this.eventService.publish(EventType.QUEUE_CREATED, saved, saved.docNo);
-      } catch {}
+      } catch { }
       return saved;
     } catch (err: any) {
       throw new BadRequestException(err?.message || 'Failed to create queue');
@@ -183,13 +198,13 @@ export class QueueService {
 
     // 3. Update DB
     await this.queueRepository.updateStatus(docNo, targetState);
-    
+
     // 4. Log History
     // MOCK: await this.logRepository.save({ docNo, oldState: queue.status, newState: targetState, date: new Date() });
-    
+
     try {
       await this.eventService.publish(EventType.QUEUE_STATE_CHANGED, { docNo, newState: targetState, industry, data: queue }, docNo);
-    } catch {}
+    } catch { }
 
     return { docNo, oldState: queue.status, newState: targetState, message: 'State updated successfully' };
   }
@@ -209,7 +224,7 @@ export class QueueService {
         // Fix: Filter by profileId in data JSON because repository might return all (TypeORM repo implementation)
         return byCol.filter(q => q.data?.profileId === profileId);
       }
-    } catch {}
+    } catch { }
     // Fallback: fetch all and filter by JSON profileId
     const all = await this.queueRepository.findAllByIndustry('BANK'); // broad fetch; adjust if needed
     return all.filter(q => q.data?.profileId === profileId);
@@ -226,7 +241,7 @@ export class QueueService {
         { docNo, newState: 'FINISH', data: q },
         docNo
       );
-    } catch {}
+    } catch { }
     return { docNo, oldState: old, newState: 'FINISH', message: 'State updated to FINISH' };
   }
 
@@ -239,7 +254,7 @@ export class QueueService {
       try {
         await this.queueRepository.updateStatus(docNo, targetState);
         updated++;
-      } catch {}
+      } catch { }
     }
     return { action: targetState, updated };
   }
@@ -254,7 +269,7 @@ export class QueueService {
       let config: any = null;
       try {
         if (industry) config = await this.workflowConfig.getWorkflowByIndustry(industry);
-      } catch {}
+      } catch { }
 
       const states = (config && (config.states || {})) || {};
       const isFinal = states[targetStatus]?.type === 'FINAL';
@@ -265,7 +280,7 @@ export class QueueService {
         if (!isFinal && industry && states[targetStatus]) {
           return await this.changeState(docNo, targetStatus, industry);
         }
-      } catch {}
+      } catch { }
 
       await this.queueRepository.updateStatus(docNo, persistState);
       const updated = await this.queueRepository.findByDocNo(docNo);
@@ -275,7 +290,7 @@ export class QueueService {
           { docNo, newState: persistState, data: updated },
           docNo
         );
-      } catch {}
+      } catch { }
 
       return { docNo, oldState, newState: persistState, message: 'Process advanced' };
     }
@@ -289,7 +304,7 @@ export class QueueService {
         { docNo, newState: 'FINISH', data: updated },
         docNo
       );
-    } catch {}
+    } catch { }
 
     return { docNo, oldState, newState: 'FINISH', message: 'Process advanced' };
   }
@@ -323,11 +338,11 @@ export class QueueService {
       // กรณี 1: ถ้ามี docNo = ข้ามคิว (เลือกคิวเฉพาะ)
       if (docNo) {
         nextQueue = await this.queueRepository.findByDocNo(docNo);
-        
+
         if (!nextQueue) {
           throw new BadRequestException(`Queue with docNo ${docNo} not found`);
         }
-        
+
         // ตรวจสอบว่าคิวอยู่ในสถานะที่สามารถเรียกได้
         const allowedStatuses = ['WAITING', 'WAIT', 'WAIT_TABLE', 'PENDING', null];
         if (!allowedStatuses.includes(nextQueue.status)) {
@@ -335,31 +350,32 @@ export class QueueService {
             `Cannot call queue with status: ${nextQueue.status}. Allowed statuses: WAITING, WAIT, WAIT_TABLE, PENDING, or null`
           );
         }
-      } 
+      }
       // กรณี 2: ไม่มี docNo = ค้นหาคิวถัดไปที่รออยู่
       else {
         nextQueue = await this.queueRepository.findNextWaiting(profileId, serviceGroup);
-        
+
         if (!nextQueue) {
           return null; // ไม่มีคิวที่รออยู่
         }
       }
-      
-      // อัพเดทสถานะคิวเป็นค่าที่รับมา หรือ CALLING เป็นค่า default
-      const newStatus = targetStatus || 'CALLING';
-      await this.queueRepository.updateStatus(nextQueue.docNo, newStatus, refId, refType);
-      
+
+      // อัพเดทสถานะคิวเป็นค่าที่รับมา (หรือค่าเดิมถ้าเคยถูกข้ามมา) หรือ CALLING เป็นค่า default
+      const newStatus = nextQueue.prevStatus || targetStatus || 'CALLING';
+      // clearPrevStatus = true เพื่อลบสถานะเดิมทิ้งไปหลังจากการดึงมาใช้แล้ว
+      await this.queueRepository.updateStatus(nextQueue.docNo, newStatus, refId, refType, true);
+
       // ดึงข้อมูลล่าสุดหลังอัพเดท
       const updatedQueue = await this.queueRepository.findByDocNo(nextQueue.docNo);
-      
+
       try {
         await this.eventService.publishLocal(
           EventType.QUEUE_STATE_CHANGED,
           { docNo: updatedQueue?.docNo, newState: newStatus, data: updatedQueue },
           updatedQueue?.docNo
         );
-      } catch {}
-      
+      } catch { }
+
       return updatedQueue;
     } catch (error) {
       console.error('[QueueService] Error calling next queue:', error);
@@ -372,8 +388,9 @@ export class QueueService {
 
   async skipQueue(docNo: string) {
     const q = await this.getQueue(docNo);
-    await this.queueRepository.skipQueue(docNo);
-    
+    // ส่งสถานะเดิม (q.status) ไปเก็บไว้ใน prevStatus ก่อนทำการ skip
+    await this.queueRepository.skipQueue(docNo, q.status);
+
     // Fetch updated to publish correctly
     const updated = await this.queueRepository.findByDocNo(docNo);
     try {
@@ -382,15 +399,15 @@ export class QueueService {
         { docNo, newState: 'WAITING', data: updated },
         docNo
       );
-    } catch {}
-    
+    } catch { }
+
     return { docNo, newState: 'WAITING', message: 'Ticket skipped successfully' };
   }
 
   async cancelQueue(docNo: string) {
     const q = await this.getQueue(docNo);
     await this.queueRepository.updateStatus(docNo, 'CANCEL');
-    
+
     // Fetch updated to publish correctly
     const updated = await this.queueRepository.findByDocNo(docNo);
     try {
@@ -399,8 +416,8 @@ export class QueueService {
         { docNo, newState: 'CANCEL', data: updated },
         docNo
       );
-    } catch {}
-    
+    } catch { }
+
     return { docNo, newState: 'CANCEL', message: 'Ticket cancelled successfully' };
   }
 }
