@@ -41,6 +41,7 @@ export class QueueController {
           serviceCode: "DEPOSIT_01",
           refId: "DOC-REF-00123",
           refType: "BOOKING",
+          chanelCode: "CH_01",
           attributes: {
             queueType: "VIP",
             serviceGroup: "FINANCE",
@@ -56,8 +57,8 @@ export class QueueController {
           tel: "0891234567",
           agnCode: "AGN_001",
           bchCode: "BCH_001",
-          preFix: "A",
-          kitchenCode: "DEPOSIT_01",
+          kitchenCode: ["DEPOSIT_01"],
+          chanelCode: "CH_01",
           refId: "DOC-REF-00123",
           refType: "BOOKING"
         }
@@ -80,12 +81,13 @@ export class QueueController {
         queueType: "VIP",
         refId: "DOC-REF-00123",
         refType: "BOOKING",
-        ticketNo: "A0003",
+        ticketNo: "T0003",
         data: {
           queueType: "VIP",
           serviceGroup: "FINANCE",
           kioskCode: "KIOSK-01",
-          kitchenCode: "DEPOSIT_01",
+          kitchenCode: ["DEPOSIT_01"],
+          chanelCode: "CH_01",
           notes: "ลูกค้าต้องการทำรายการฝาก-ถอนแบบรวม",
           profileId: "P_BRANCH_001",
           sequenceName: "SEQ:AGN_001:BCH_001:A:DEPOSIT_01",

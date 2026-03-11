@@ -66,6 +66,7 @@ export class QueueService {
         ...attr,
         queueType,
         profileId: dto.profileId,
+        chanelCode: dto.chanelCode,
         sequenceName: seqName,
         sequenceNo: nextNo,
         queueNo: nextNo
@@ -103,34 +104,69 @@ export class QueueService {
     const agnCode = dto.agnCode || 'AGN';
 
     const bchCode = dto.bchCode || '';
-    const preFix = dto.preFix || '';
-    // Backwards compatibility for POS payload: If serviceCode is empty but kitchenCode is provided, use kitchenCode.
-    const serviceCode = dto.serviceCode || dto.kitchenCode || '';
+    // Backwards compatibility for POS payload: If serviceCode is empty but kitchenCode is provided, use the first kitchenCode.
+    const serviceCode = dto.serviceCode || (Array.isArray(dto.kitchenCode) && dto.kitchenCode.length > 0 ? dto.kitchenCode[0] : '') || '';
 
-    // Lookup profileId from agnCode if not provided
+    // Ensure prefix is only extracted from profile config
     let finalProfileId = dto.profileId;
-    if (!finalProfileId && dto.agnCode) {
+    let extractedPrefix = '';
+    let maxQueueNumber = 999;
+    let resetCondition = 'EOD';
+
+    let profile: any = null;
+
+    // First try fetching by profileId
+    if (dto.profileId) {
       try {
-        const profile = await this.workflowConfig.getProfileByAgnCode(dto.agnCode);
-        if (profile) {
-          finalProfileId = profile.code;
-        }
-      } catch (err) {
-        console.error('[QueueService] Failed to lookup profile by agnCode:', err);
-      }
+        profile = await this.workflowConfig.getProfileByCode(dto.profileId);
+      } catch (err) { }
     }
 
-    const seqName = this.sequenceService.buildQueueSequenceName(agnCode, bchCode, preFix, serviceCode);
+    // Fallback to agnCode if profile is still missing
+    if (!profile && dto.agnCode) {
+      try {
+        profile = await this.workflowConfig.getProfileByAgnCode(dto.agnCode);
+      } catch (err) { }
+    }
+
+    if (profile) {
+      finalProfileId = profile.code;
+      const serviceGroups = profile.config?.serviceGroups || [];
+      let matchedGroup = null;
+
+      if (dto.chanelCode) {
+        matchedGroup = serviceGroups.find((g: any) => g.channelCode === dto.chanelCode);
+      } else if (dto.attributes && dto.attributes.serviceGroup) {
+        matchedGroup = serviceGroups.find((g: any) => g.code === dto.attributes.serviceGroup);
+      } else {
+        throw new BadRequestException('chanelCode or attributes.serviceGroup is required to resolve prefix context');
+      }
+
+      if (matchedGroup) {
+        extractedPrefix = matchedGroup.prefix || '';
+        if (matchedGroup.maxQueueNumber) maxQueueNumber = matchedGroup.maxQueueNumber;
+        if (matchedGroup.resetCondition) resetCondition = matchedGroup.resetCondition;
+      } else {
+        throw new BadRequestException('Queue Configuration (Service Group) not found for the specified criteria');
+      }
+    } else {
+      throw new BadRequestException('Profile not found for the given profileId or agnCode');
+    }
+
+    const seqName = this.sequenceService.buildQueueSequenceName(agnCode, bchCode, extractedPrefix, serviceCode, dto.chanelCode || '');
     let nextNo = 1;
     try {
-      await this.sequenceService.ensureQueueSequence(seqName);
-      nextNo = await this.sequenceService.next(seqName);
+      await this.sequenceService.ensureQueueSequence(seqName, { max: maxQueueNumber });
+      nextNo = await this.sequenceService.next(seqName, maxQueueNumber, resetCondition);
     } catch (err) {
       console.error('Sequence generation failed, using fallback', err);
       // Fallback to random or timestamp if sequence fails to avoid stopping the world
       nextNo = Math.floor(Date.now() % 100000);
     }
-    let ticketNo = `${dto.preFix}${String(nextNo).padStart(4, '0')}`;
+
+    // Dynamic zero-padding based on maxQueueNumber length
+    const padLength = String(maxQueueNumber).length;
+    let ticketNo = `${extractedPrefix}${String(nextNo).padStart(padLength, '0')}`;
 
     const newQueue = new QueueEntity({
       docNo: docNo,
@@ -153,6 +189,7 @@ export class QueueService {
         queueType,
         profileId: finalProfileId,
         kitchenCode: dto.kitchenCode,  // Explicitly persist kitchenCode from POS
+        chanelCode: dto.chanelCode,
         sequenceName: seqName,
         sequenceNo: nextNo,
         queueNo: nextNo,

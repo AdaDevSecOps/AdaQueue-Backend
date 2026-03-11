@@ -1,9 +1,19 @@
 import { QueueService } from './queue.service';
 
-class MockWorkflowEngine {}
+class MockWorkflowEngine { }
 class MockWorkflowConfigService {
   async getWorkflowByIndustry(industry: string) {
     return { flowCode: 'FLOW_BANK_001', initialState: 'WAITING' };
+  }
+  async getProfileByAgnCode(agnCode: string) {
+    return {
+      code: 'PROFILE-1',
+      config: {
+        serviceGroups: [
+          { channelCode: 'CH_01', prefix: 'W' }
+        ]
+      }
+    };
   }
 }
 
@@ -14,11 +24,13 @@ class MockQueueRepository {
 }
 
 class MockSequenceService {
-  async testEnsure(_: string) {}
+  async testEnsure(_: string) { }
   async next(_: string) { return 1; }
   testBuildName() { return 'SEQ'; }
   buildName() { return 'SEQ'; }
-  async ensure(_: string) {}
+  async ensure(_: string) { }
+  async ensureQueueSequence(_: string) { }
+  buildQueueSequenceName() { return 'SEQ' }
 }
 
 class MockEventService {
@@ -43,7 +55,7 @@ describe('QueueService.generateQueue -> EventService.publish', () => {
       profileId: 'PROFILE-1',
       attributes: { serviceGroup: 'RESTAURANT' },
       bchCode: '00002',
-      preFix: 'W',
+      chanelCode: 'CH_01',
       serviceCode: '00001',
     };
 

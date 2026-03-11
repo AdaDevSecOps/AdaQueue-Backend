@@ -11,5 +11,6 @@ export class CreateQueueDto {
   bchCode?: string;
   preFix?: string;
   serviceCode?: string;
-  kitchenCode?: string;
+  kitchenCode?: string[];
+  chanelCode?: string;
 }

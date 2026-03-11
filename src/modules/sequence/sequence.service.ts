@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm';
 
 @Injectable()
 export class SequenceService {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(private readonly dataSource: DataSource) { }
 
   private sanitizeId(input: string) {
     const s = (input || '').trim().toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '');
@@ -38,15 +38,17 @@ export class SequenceService {
   }
 
   // [Test] สร้างชื่อ sequence 
-  buildQueueSequenceName(agnCode: string, bchCode: string, preFix: string, serviceCode: string) {
-    const agn = agnCode ? 'SG_AGN'+agnCode : '';
-    const bch = bchCode ? 'BCH'+bchCode : '';
+  buildQueueSequenceName(agnCode: string, bchCode: string, preFix: string, serviceCode: string, chanelCode: string) {
+    const agn = agnCode ? 'SG_AGN' + agnCode : '';
+    const bch = bchCode ? 'BCH' + bchCode : '';
+    const chn = chanelCode ? 'CH' + chanelCode : '';
     const srvCode = (serviceCode === '00001') ? 'KIOSK' : 'POS';
-    const prefix = preFix ? 'Q'+preFix : '';
-    const a = this.sanitizeId(agn+bch);
+    const prefix = preFix ? 'Q' + preFix : '';
+    const a = this.sanitizeId(agn + bch);
+    const c = this.sanitizeId(chn);
     const p = this.sanitizeId(srvCode);
     const d = this.sanitizeId(prefix);
-    const joined = [a, p, d].filter(Boolean).join('_');
+    const joined = [a, c, p, d].filter(Boolean).join('_');
     return joined || 'SEQ_DEFAULT';
   }
 
@@ -67,16 +69,25 @@ export class SequenceService {
     await this.dataSource.query(ddl);
   }
 
-  async next(name: string) {
+  async next(name: string, maxQueueNumber: number = 999, resetCondition: string = 'EOD') {
     const qn = name.replace(/]/g, ']]');
-    await this.resetIfNewDay(name);
+    await this.resetIfConditionMet(name, resetCondition);
+
     const sql = `SELECT NEXT VALUE FOR dbo.[${qn}] AS nextVal`;
-    const rows = await this.dataSource.query(sql);
-    const v = rows?.[0]?.nextVal ?? rows?.[0];
-    const num = typeof v === 'number' ? v : parseInt(String(v || '0'), 10);
-    
+    let rows = await this.dataSource.query(sql);
+    let v = rows?.[0]?.nextVal ?? rows?.[0];
+    let num = typeof v === 'number' ? v : parseInt(String(v || '0'), 10);
+
+    // Check MaxQueueNumber Roll-over
+    if (num > maxQueueNumber) {
+      await this.dataSource.query(`ALTER SEQUENCE dbo.[${qn}] RESTART WITH 1`);
+      rows = await this.dataSource.query(sql);
+      v = rows?.[0]?.nextVal ?? rows?.[0];
+      num = typeof v === 'number' ? v : parseInt(String(v || '0'), 10);
+    }
+
     try {
-        const markSql = `
+      const markSql = `
             IF NOT EXISTS (SELECT 1 FROM sys.extended_properties WHERE name=N'ADA_SEQ_STARTED' AND major_id = OBJECT_ID(N'dbo.[${qn}]') AND value = N'1')
             BEGIN
                 IF EXISTS (SELECT 1 FROM sys.extended_properties WHERE name=N'ADA_SEQ_STARTED' AND major_id = OBJECT_ID(N'dbo.[${qn}]'))
@@ -85,16 +96,16 @@ export class SequenceService {
                     EXEC sys.sp_addextendedproperty @name=N'ADA_SEQ_STARTED', @value=N'1', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'SEQUENCE', @level1name=N'${name}';
             END
         `;
-        await this.dataSource.query(markSql);
+      await this.dataSource.query(markSql);
     } catch (e) {
-        // ignore error
+      // ignore error
     }
 
     return num;
   }
 
-  async preview(name: string) {
-    await this.resetIfNewDay(name);
+  async preview(name: string, maxQueueNumber: number = 999, resetCondition: string = 'EOD') {
+    await this.resetIfConditionMet(name, resetCondition);
     const qn = name.replace(/]/g, ']]');
     const sql = `
       SELECT
@@ -118,12 +129,21 @@ export class SequenceService {
 
     // If not started yet, next value is the start value (usually 1)
     if (!isStarted) {
-        return { next: r.startValue || 1 };
+      return { next: r.startValue || 1 };
     }
 
     let next = curr ? curr + inc : r.startValue || 1;
     if (next > max) next = cyc ? r.startValue || 1 : max;
     return { next };
+  }
+
+  private getWeekString(date: Date): string {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+    return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
   }
 
   private todayYmd() {
@@ -134,32 +154,54 @@ export class SequenceService {
     return `${y}${m}${dd}`;
   }
 
-  private async resetIfNewDay(name: string) {
+  private async resetIfConditionMet(name: string, resetCondition: string) {
     const qn = name.replace(/]/g, ']]');
-    const ymd = this.todayYmd();
-    const checkSql = `SELECT CAST(value as nvarchar(128)) AS v FROM sys.extended_properties WHERE name=N'ADA_LAST_RESET_YMD' AND major_id = OBJECT_ID(N'dbo.[${qn}]')`;
-    try {
-      const r = await this.dataSource.query(checkSql);
-      const last = r?.[0]?.v as string | undefined;
-      if (last !== ymd) {
-        await this.dataSource.query(`ALTER SEQUENCE dbo.[${qn}] RESTART WITH 1`);
-        
-        // Update YMD and Reset STARTED flag to 0
-        const upd = `
-            IF EXISTS (SELECT 1 FROM sys.extended_properties WHERE name=N'ADA_LAST_RESET_YMD' AND major_id = OBJECT_ID(N'dbo.[${qn}]'))
-                EXEC sys.sp_updateextendedproperty @name=N'ADA_LAST_RESET_YMD', @value=N'${ymd}', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'SEQUENCE', @level1name=N'${name}';
-            ELSE
-                EXEC sys.sp_addextendedproperty @name=N'ADA_LAST_RESET_YMD', @value=N'${ymd}', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'SEQUENCE', @level1name=N'${name}';
 
-            IF EXISTS (SELECT 1 FROM sys.extended_properties WHERE name=N'ADA_SEQ_STARTED' AND major_id = OBJECT_ID(N'dbo.[${qn}]'))
-                EXEC sys.sp_updateextendedproperty @name=N'ADA_SEQ_STARTED', @value=N'0', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'SEQUENCE', @level1name=N'${name}';
-            ELSE
-                EXEC sys.sp_addextendedproperty @name=N'ADA_SEQ_STARTED', @value=N'0', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'SEQUENCE', @level1name=N'${name}';
-        `;
-        await this.dataSource.query(upd);
-      }
-    } catch {
-      // ignore
+    if (resetCondition === '7DAYS') {
+      const weekStr = this.getWeekString(new Date());
+      const checkSql = `SELECT CAST(value as nvarchar(128)) AS v FROM sys.extended_properties WHERE name=N'ADA_LAST_RESET_WEEK' AND major_id = OBJECT_ID(N'dbo.[${qn}]')`;
+      try {
+        const r = await this.dataSource.query(checkSql);
+        const last = r?.[0]?.v as string | undefined;
+        if (last !== weekStr) {
+          await this.dataSource.query(`ALTER SEQUENCE dbo.[${qn}] RESTART WITH 1`);
+          const upd = `
+              IF EXISTS (SELECT 1 FROM sys.extended_properties WHERE name=N'ADA_LAST_RESET_WEEK' AND major_id = OBJECT_ID(N'dbo.[${qn}]'))
+                  EXEC sys.sp_updateextendedproperty @name=N'ADA_LAST_RESET_WEEK', @value=N'${weekStr}', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'SEQUENCE', @level1name=N'${name}';
+              ELSE
+                  EXEC sys.sp_addextendedproperty @name=N'ADA_LAST_RESET_WEEK', @value=N'${weekStr}', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'SEQUENCE', @level1name=N'${name}';
+
+              IF EXISTS (SELECT 1 FROM sys.extended_properties WHERE name=N'ADA_SEQ_STARTED' AND major_id = OBJECT_ID(N'dbo.[${qn}]'))
+                  EXEC sys.sp_updateextendedproperty @name=N'ADA_SEQ_STARTED', @value=N'0', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'SEQUENCE', @level1name=N'${name}';
+              ELSE
+                  EXEC sys.sp_addextendedproperty @name=N'ADA_SEQ_STARTED', @value=N'0', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'SEQUENCE', @level1name=N'${name}';
+          `;
+          await this.dataSource.query(upd);
+        }
+      } catch { }
+    } else {
+      // EOD or default
+      const ymd = this.todayYmd();
+      const checkSql = `SELECT CAST(value as nvarchar(128)) AS v FROM sys.extended_properties WHERE name=N'ADA_LAST_RESET_YMD' AND major_id = OBJECT_ID(N'dbo.[${qn}]')`;
+      try {
+        const r = await this.dataSource.query(checkSql);
+        const last = r?.[0]?.v as string | undefined;
+        if (last !== ymd) {
+          await this.dataSource.query(`ALTER SEQUENCE dbo.[${qn}] RESTART WITH 1`);
+          const upd = `
+              IF EXISTS (SELECT 1 FROM sys.extended_properties WHERE name=N'ADA_LAST_RESET_YMD' AND major_id = OBJECT_ID(N'dbo.[${qn}]'))
+                  EXEC sys.sp_updateextendedproperty @name=N'ADA_LAST_RESET_YMD', @value=N'${ymd}', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'SEQUENCE', @level1name=N'${name}';
+              ELSE
+                  EXEC sys.sp_addextendedproperty @name=N'ADA_LAST_RESET_YMD', @value=N'${ymd}', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'SEQUENCE', @level1name=N'${name}';
+
+              IF EXISTS (SELECT 1 FROM sys.extended_properties WHERE name=N'ADA_SEQ_STARTED' AND major_id = OBJECT_ID(N'dbo.[${qn}]'))
+                  EXEC sys.sp_updateextendedproperty @name=N'ADA_SEQ_STARTED', @value=N'0', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'SEQUENCE', @level1name=N'${name}';
+              ELSE
+                  EXEC sys.sp_addextendedproperty @name=N'ADA_SEQ_STARTED', @value=N'0', @level0type=N'SCHEMA', @level0name=N'dbo', @level1type=N'SEQUENCE', @level1name=N'${name}';
+          `;
+          await this.dataSource.query(upd);
+        }
+      } catch { }
     }
   }
 }
