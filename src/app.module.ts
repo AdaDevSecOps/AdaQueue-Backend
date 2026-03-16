@@ -16,6 +16,7 @@ import { EventsGateway } from './modules/events/events.gateway';
 import { EventsRmqListener } from './modules/events/events.rmq.listener';
 import { UserModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { ProfileModule } from './modules/profile/profile.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { AuthModule } from './modules/auth/auth.module';
     SequenceModule,
     UserModule,
     AuthModule,
+    ProfileModule,
   ],
   controllers: [
     AnalyticsController,
