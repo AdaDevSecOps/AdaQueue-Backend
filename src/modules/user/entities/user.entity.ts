@@ -14,7 +14,7 @@ export class User {
   @Column({ name: 'FTUsrRole' })
   role: string;
 
-  @Column({ name: 'FTIsDeleted', default: '0' })
+  @Column({ name: 'FTUsrStatus', default: '1' })
   status: string;
 
   @Column({ name: 'FDLastLogin', type: 'datetime', nullable: true })

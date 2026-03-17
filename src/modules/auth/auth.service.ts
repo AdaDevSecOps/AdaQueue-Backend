@@ -13,6 +13,11 @@ export class AuthService {
   async validateUser(identifier: string, pin: string): Promise<any> {
     const user = await this.userService.findByName(identifier);
     if (user) {
+      // Check if account is suspended
+      if (user.status === '2') {
+        throw new UnauthorizedException('errors.accountSuspended');
+      }
+
       let isMatch = false;
       try {
         isMatch = await bcrypt.compare(pin, user.pin);

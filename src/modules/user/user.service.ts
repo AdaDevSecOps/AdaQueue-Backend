@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Not } from 'typeorm';
 import { User } from './entities/user.entity';
 
 @Injectable()
@@ -13,7 +13,12 @@ export class UserService {
   async findAll(query?: { role?: string; status?: string }): Promise<User[]> {
     const where: any = {};
     if (query?.role) where.role = query.role;
-    if (query?.status !== undefined) where.status = query.status;
+    // By default, filter out deleted users (status 3)
+    if (query?.status !== undefined) {
+      where.status = query.status;
+    } else {
+      where.status = Not('3');
+    }
     return this.userRepository.find({ where });
   }
 
@@ -29,7 +34,14 @@ export class UserService {
   }
 
   async findByName(name: string): Promise<User | undefined> {
-    return this.userRepository.findOne({ where: { name, status: '0' } });
+    // Look for users who are either Active (1) or Inactive (2)
+    // Deleted users (3) are treated as non-existent for login validation
+    return this.userRepository.findOne({ 
+      where: [
+        { name, status: '1' },
+        { name, status: '2' }
+      ] 
+    });
   }
 
   async update(code: string, updateData: Partial<User>): Promise<void> {
@@ -41,6 +53,6 @@ export class UserService {
   }
 
   async remove(code: string): Promise<void> {
-    await this.userRepository.update(code, { status: '1' });
+    await this.userRepository.update(code, { status: '3' });
   }
 }
