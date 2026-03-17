@@ -29,7 +29,7 @@ export class UserService {
   }
 
   async findByName(name: string): Promise<User | undefined> {
-    return this.userRepository.findOne({ where: { name } });
+    return this.userRepository.findOne({ where: { name, status: '0' } });
   }
 
   async update(code: string, updateData: Partial<User>): Promise<void> {

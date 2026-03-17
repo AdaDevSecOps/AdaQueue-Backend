@@ -13,13 +13,10 @@ export class AuthService {
   async validateUser(identifier: string, pin: string): Promise<any> {
     const user = await this.userService.findByName(identifier);
     if (user) {
-      // For development, we support both plain text (for initial migration) and hashed PINs
-      // In production, we should only support hashed PINs
       let isMatch = false;
       try {
         isMatch = await bcrypt.compare(pin, user.pin);
       } catch (e) {
-        // If bcrypt fails, it might be a plain text PIN (during transition)
         isMatch = user.pin === pin;
       }
 
