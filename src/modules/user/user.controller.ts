@@ -7,6 +7,12 @@ import * as bcrypt from 'bcrypt';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  @Get('next-code')
+  async getNextCode() {
+    const code = await this.userService.getNextUserCode();
+    return { code };
+  }
+
   @Get()
   async findAll(@Query('role') role?: string, @Query('status') status?: string) {
     return this.userService.findAll({ role, status });

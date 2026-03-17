@@ -55,4 +55,15 @@ export class UserService {
   async remove(code: string): Promise<void> {
     await this.userRepository.update(code, { status: '3' });
   }
+
+  async getNextUserCode(): Promise<string> {
+    const users = await this.userRepository.find({ select: ['code'] });
+    const codes = users
+      .map(u => parseInt(u.code, 10))
+      .filter(num => !isNaN(num));
+    
+    const maxCode = codes.length > 0 ? Math.max(...codes) : 0;
+    const nextCode = maxCode + 1;
+    return nextCode.toString().padStart(3, '0');
+  }
 }
