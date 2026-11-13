@@ -1,3 +1,7 @@
+import { APP_GUARD } from '@nestjs/core';
+import { AuthService } from './auth/auth.service';
+import { AuthController } from './auth/auth.controller';
+import { AccessGuard } from './auth/access.guard';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -43,12 +47,12 @@ import { SequenceModule } from './modules/sequence/sequence.module';
     PerformanceModule,
     SequenceModule,
   ],
-  controllers: [
+  controllers: [AuthController,
     AnalyticsController,
     KdsController,
     PosController,
   ],
-  providers: [
+  providers: [AuthService, { provide: APP_GUARD, useClass: AccessGuard },
     AuditService,
     EventService,
     NotificationService,

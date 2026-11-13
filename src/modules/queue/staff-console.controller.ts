@@ -66,8 +66,8 @@ export class StaffConsoleController {
     // 3. Get Next Options from Engine
     const transitions = this.workflowEngine.getNextOptions(config, queue.status);
 
-    // 4. Filter by Role (Mock Role: 'NURSE')
-    const userRole = 'NURSE'; // req.user.role
+    // 4. Filter by the authenticated KDS role.
+    const userRole = req.user.sourceRole;
     
     const allowedActions = transitions.filter(t => {
         if (!t.requiredRole) return true;
@@ -119,8 +119,8 @@ export class StaffConsoleController {
     status: 400,
     description: 'Bad Request - Invalid transition or queue not found'
   })
-  async executeAction(@Body() body: { docNo: string, action: string, industry: string }) {
-      return await this.queueService.changeState(body.docNo, body.action, body.industry);
+  async executeAction(@Body() body: { docNo: string, action: string, industry: string }, @Request() req: any) {
+      return await this.queueService.changeState(body.docNo, body.action, body.industry, req.user.sourceRole);
   }
 
   // Call Next Queue - เรียกคิวถัดไปที่รออยู่

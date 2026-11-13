@@ -8,6 +8,7 @@ import { QueueEntity } from './entities/queue.entity';
 import { TypeOrmQueueRepository } from './repositories/queue.repository.typeorm';
 import { WorkflowModule } from '../workflow/workflow.module';
 import { SequenceModule } from '../sequence/sequence.module';
+import { KioskTrialController } from './kiosk-trial.controller';
 
 @Module({
   imports: [
@@ -15,7 +16,7 @@ import { SequenceModule } from '../sequence/sequence.module';
     WorkflowModule,
     SequenceModule
   ],
-  controllers: [QueueController, StaffConsoleController, StaffQueueController],
+  controllers: [QueueController, StaffConsoleController, StaffQueueController, KioskTrialController],
   providers: [
     QueueService,
     {

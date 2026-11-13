@@ -89,12 +89,12 @@ export class QueueService {
   }
 
   // Change State
-  async changeState(docNo: string, targetState: string, industry: string) {
+  async changeState(docNo: string, targetState: string, industry: string, userRole?: string) {
     const queue = await this.getQueue(docNo);
     const config = await this.workflowConfig.getWorkflowByIndustry(industry);
 
     // 1. Validate Transition using Workflow Engine
-    const result = this.workflowEngine.validateTransition(config, queue.status, targetState);
+    const result = this.workflowEngine.validateTransition(config, queue.status, targetState, userRole);
     if (!result.valid) {
       throw new BadRequestException(result.error);
     }
