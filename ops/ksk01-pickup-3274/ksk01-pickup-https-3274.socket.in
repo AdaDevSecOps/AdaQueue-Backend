@@ -1,0 +1,9 @@
+[Unit]
+Description=KSK01 Pickup HTTPS on the AdaQueue bridge
+
+[Socket]
+ListenStream=@QUEUE_BRIDGE_ADDRESS@:3274
+BindToDevice=@QUEUE_BRIDGE_INTERFACE@
+
+[Install]
+WantedBy=sockets.target

@@ -1,0 +1,11 @@
+services:
+  queue-backend:
+    volumes:
+      - type: bind
+        source: "${PICKUP_3274_PROFILE:?set PICKUP_3274_PROFILE to the Pickup profile file}"
+        target: /pickup/profile.json
+        read_only: true
+      - type: bind
+        source: "${PICKUP_3274_CA:?set PICKUP_3274_CA to the public certificate file}"
+        target: /pickup/ca.pem
+        read_only: true

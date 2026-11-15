@@ -1,0 +1,6 @@
+[Unit]
+Description=KSK01 Pickup HTTPS TCP transport
+
+[Service]
+ExecStart=/usr/lib/systemd/systemd-socket-proxyd 127.0.0.1:3274
+NoNewPrivileges=yes

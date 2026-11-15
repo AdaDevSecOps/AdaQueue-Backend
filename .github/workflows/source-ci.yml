@@ -23,4 +23,4 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - run: node --test test/ksk01-queue-origin.test.mjs
+      - run: node --test test/ksk01-queue-origin.test.mjs test/ksk01-pickup-3274.test.mjs
