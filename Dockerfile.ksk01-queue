@@ -1,0 +1,11 @@
+ARG ADAQUEUE_BACKEND_IMAGE
+ARG KSK01_QUEUE_WORKER_IMAGE
+FROM ${ADAQUEUE_BACKEND_IMAGE} AS backend
+FROM ${KSK01_QUEUE_WORKER_IMAGE}
+
+WORKDIR /adaqueue
+COPY --from=backend /app/ /adaqueue/
+COPY --chown=1000:1000 dist/ksk01-queue.js dist/ksk01-queue-entry.js /adaqueue/dist/
+USER 1000:1000
+ENTRYPOINT ["node", "/adaqueue/dist/ksk01-queue-entry.js"]
+CMD []
