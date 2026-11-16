@@ -62,3 +62,26 @@ Node 22 and OpenSSL. It starts the shipped HTTPS origin against a disposable
 HTTP fixture with an ephemeral certificate. It tests completion and three
 repeat reads of queue 0012, authorization and route boundaries, and rejection
 of plaintext and untrusted TLS.
+
+## Shared port for KSK01 document numbering
+
+16 November 2026 · branch `00012` / POS `00016`
+
+The same HTTPS origin on port `3274` forwards the three numbering POSTs
+`reserve`, `lookup`, and `readiness` to the local KSK01 authority on TLS port
+`3261`. Numbering uses its own Bearer and the authority certificate in the
+protected checkout provision. The Pickup routes retain their existing worker
+and authorization.
+
+The isolated numbering test recovered a lost response and replayed the same
+request three times. All replies used `QA00016-0000001` with the same Thai QR
+references `QA000000001` and `0001200016`. The authority allocated one number.
+The installed KSK01 read an existing signed reservation through the Tunnel
+three times and got the original document number and both references each
+time. The live ledger count stayed unchanged. Queue Backend still reached
+Pickup on verified TLS port `3274` and received its expected HTTP 401 for
+the unauthenticated probe. No money was collected.
+
+The source regression above also starts a TLS numbering fixture. It checks the
+three allowed routes, the Bearer boundary, denial of recovery and invalid
+bodies, and that numbering never reaches Pickup.
